@@ -112,6 +112,7 @@ program
                     name: 'action',
                     message: 'Slash Commands:',
                     choices: [
+                        { name: 'Review Code', value: 'review' },
                         { name: 'Analyze Project', value: 'analyze' },
                         { name: 'Display Context', value: 'context' },
                         { name: 'Clear Chat History', value: 'clear' },
@@ -121,6 +122,74 @@ program
                     ]
                 }
             ]);
+            if (action === 'review') {
+                const { target } = await inquirer_1.default.prompt([{
+                        type: 'input',
+                        name: 'target',
+                        message: 'Enter file path to review (or press enter for full context):'
+                    }]);
+                let contentToReview = '';
+                let filePath = '';
+                if (target.trim()) {
+                    filePath = target.trim();
+                    contentToReview = (0, context_1.getFileContent)(filePath);
+                    if (!contentToReview) {
+                        ui_1.log.error('File not found or empty.');
+                        continue;
+                    }
+                }
+                else {
+                    contentToReview = contextMessage;
+                }
+                const spinner = (0, ora_1.default)('Reviewing code...').start();
+                const reviewPrompt = `
+             Please review the following code.
+             File: ${filePath || 'Current Context'}
+             Code:
+             ${contentToReview}
+             
+             1. Analyze for bugs, improvements, and best practices.
+             2. If you find improvements, provide the FULL corrected code for the file wrapped in <<<CODE>>> and <<<CODE>>> delimiters.
+             Example:
+             <<<CODE>>>
+             const a = 1;
+             <<<CODE>>>
+             `;
+                messages.push({ role: 'user', content: reviewPrompt });
+                try {
+                    const stream = await (0, groq_1.streamChat)(messages);
+                    let assistantResponse = '';
+                    process.stdout.write('\n');
+                    for await (const chunk of stream) {
+                        const content = chunk.choices[0]?.delta?.content || '';
+                        process.stdout.write(content);
+                        assistantResponse += content;
+                    }
+                    process.stdout.write('\n\n');
+                    messages.push({ role: 'assistant', content: assistantResponse });
+                    spinner.stop();
+                    // Check for code block to apply
+                    const codeMatch = assistantResponse.match(/<<<CODE>>>([\s\S]*?)<<<CODE>>>/);
+                    if (codeMatch && codeMatch[1] && filePath) {
+                        const { apply } = await inquirer_1.default.prompt([{
+                                type: 'confirm',
+                                name: 'apply',
+                                message: `AI suggested changes for ${filePath}. Apply them now?`,
+                                default: false
+                            }]);
+                        if (apply) {
+                            const { writeFile } = require('./lib/context');
+                            writeFile(filePath, codeMatch[1].trim());
+                            ui_1.log.success(`Successfully updated ${filePath}`);
+                        }
+                    }
+                }
+                catch (e) {
+                    spinner.fail(`Review failed: ${e.message}`);
+                    ui_1.log.error(e);
+                }
+                continue;
+            }
             if (action === 'analyze') {
                 const spinner = (0, ora_1.default)('Analyzing project structure...').start();
                 try {

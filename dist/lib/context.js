@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getFileContent = exports.getFileTree = exports.isGitRepo = void 0;
+exports.writeFile = exports.getFileContent = exports.getFileTree = exports.isGitRepo = void 0;
 const simple_git_1 = __importDefault(require("simple-git"));
 const glob_1 = require("glob");
 const fs_1 = __importDefault(require("fs"));
@@ -33,3 +33,12 @@ const getFileContent = (filePath) => {
     }
 };
 exports.getFileContent = getFileContent;
+const writeFile = (filePath, content) => {
+    try {
+        fs_1.default.writeFileSync(filePath, content, 'utf-8');
+    }
+    catch (e) {
+        throw e;
+    }
+};
+exports.writeFile = writeFile;

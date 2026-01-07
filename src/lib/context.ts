@@ -27,3 +27,11 @@ export const getFileContent = (filePath: string): string => {
         return '';
     }
 }
+
+export const writeFile = (filePath: string, content: string): void => {
+    try {
+        fs.writeFileSync(filePath, content, 'utf-8');
+    } catch (e) {
+        throw e;
+    }
+}
