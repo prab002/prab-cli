@@ -173,9 +173,11 @@ program
                 process.stdout.write('\n');
                 
                 for await (const chunk of stream) {
-                    const content = chunk.choices[0]?.delta?.content || '';
-                    process.stdout.write(content);
-                    assistantResponse += content;
+                    const content = chunk.content;
+                    if (typeof content === 'string') {
+                       process.stdout.write(content);
+                       assistantResponse += content;
+                    }
                 }
                 process.stdout.write('\n\n');
                 messages.push({ role: 'assistant', content: assistantResponse });
@@ -233,9 +235,11 @@ program
                 let assistantResponse = '';
                 process.stdout.write('\n');
                 for await (const chunk of stream) {
-                    const content = chunk.choices[0]?.delta?.content || '';
-                    process.stdout.write(content);
-                    assistantResponse += content;
+                    const content = chunk.content;
+                    if (typeof content === 'string') {
+                       process.stdout.write(content);
+                       assistantResponse += content;
+                    }
                 }
                 process.stdout.write('\n\n');
                 messages.push({ role: 'assistant', content: assistantResponse });
@@ -283,23 +287,67 @@ program
         continue;
       }
 
-      messages.push({ role: 'user', content: userInput });
+      // Auto-Context: Attach file content if mentioned
+      let finalContent = userInput;
+      const allFiles = await getFileTree();
+      const attached = [];
+
+      for (const file of allFiles) {
+          // Check for full path or basename match
+          const base = file.split('/').pop() || '';
+          // Avoid matching common words if basename is short (e.g. 'ui.ts' is fine, 'index.ts' is fine, 'a' is not)
+          const isBaseMatch = base.length > 2 && userInput.includes(base);
+          const isPathMatch = userInput.includes(file);
+
+          if (isPathMatch || isBaseMatch) {
+              const content = getFileContent(file);
+              if (content) {
+                  finalContent += `\n\n[System: Attached content of ${file}]\n\`\`\`\n${content}\n\`\`\``;
+                  attached.push(file);
+              }
+          }
+      }
+
+      if (attached.length > 0) {
+          log.info(`Analyzed and attached context for: ${attached.join(', ')}`);
+      }
+
+      messages.push({ role: 'user', content: finalContent });
 
       try {
         const stream = await streamChat(messages);
         let assistantResponse = '';
-        
         process.stdout.write('\n'); // Newline before response
 
         for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            process.stdout.write(content);
-            assistantResponse += content;
+            const content = chunk.content || '';
+            if (typeof content === 'string') {
+                process.stdout.write(content);
+                assistantResponse += content;
+            }
         }
 
         process.stdout.write('\n\n'); // Newline after response
         messages.push({ role: 'assistant', content: assistantResponse });
 
+        // Check for code block to apply (for normal chat as well)
+        const codeMatch = assistantResponse.match(/<<<CODE>>>([\s\S]*?)<<<CODE>>>/);
+        if (codeMatch && codeMatch[1] && attached.length === 1) {
+             // Only auto-suggest apply if exactly one file was discussed/attached to avoid ambiguity
+             const filePath = attached[0];
+             const { apply } = await inquirer.prompt([{
+                type: 'confirm',
+                name: 'apply',
+                message: `AI suggested changes for ${filePath}. Apply them now?`,
+                default: false
+            }]);
+
+            if (apply) {
+                const { writeFile } = require('./lib/context');
+                writeFile(filePath, codeMatch[1].trim());
+                log.success(`Successfully updated ${filePath}`);
+            }
+        }
       } catch (error: any) {
         log.error(`Error: ${error.message}`);
       }
