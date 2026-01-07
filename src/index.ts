@@ -1,19 +1,36 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import inquirer from 'inquirer';
-import { getApiKey, setApiKey, clearApiKey } from './lib/config';
-import { streamChat, initGroq, Message } from './lib/groq';
-import { isGitRepo, getFileTree, getFileContent } from './lib/context';
-import { log, banner } from './lib/ui';
+import { getApiKey, setApiKey, clearApiKey, getModelConfig, setActiveModel, getPreferences, clearSessionData } from './lib/config';
+import { isGitRepo, getFileTree } from './lib/context';
+import { log, banner, showTodoList } from './lib/ui';
+import { getSessionData } from './lib/config';
 import ora from 'ora';
+
+// Import tool system
+import { ToolRegistry } from './lib/tools/base';
+import { ToolExecutor } from './lib/tools/executor';
+import { ReadFileTool, WriteFileTool, EditFileTool, GlobTool, GrepTool } from './lib/tools/file-tools';
+import { BashTool } from './lib/tools/shell-tools';
+import { GitStatusTool, GitDiffTool, GitLogTool, GitCommitTool, GitBranchTool, GitPushTool } from './lib/tools/git-tools';
+import { TodoTool } from './lib/tools/todo-tool';
+
+// Import model system
+import { GroqProvider } from './lib/models/groq-provider';
+import { getModelList, isValidModel, validateModelId } from './lib/models/registry';
+
+// Import chat handler and safety
+import { ChatHandler } from './lib/chat-handler';
+import { SafetyChecker } from './lib/safety';
 
 const program = new Command();
 
 program
   .name('groq-cli')
-  .description('A fast AI coding assistant powered by Groq')
-  .version('1.0.0');
+  .description('An AI coding assistant with autonomous tool capabilities')
+  .version('2.0.0');
 
+// Config command
 program
   .command('config [key]')
   .description('Set your Groq API Key')
@@ -35,6 +52,7 @@ program
     log.success('API Key saved successfully!');
   });
 
+// Reset command
 program
   .command('reset')
   .description('Clear your stored API Key')
@@ -43,10 +61,57 @@ program
     log.success('API Key cleared!');
   });
 
+// Model management commands
+program
+  .command('model')
+  .description('Manage AI models')
+  .action(async () => {
+    const { action } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'Model Management:',
+        choices: [
+          { name: 'List available models', value: 'list' },
+          { name: 'Show current model', value: 'current' },
+          { name: 'Switch model', value: 'switch' },
+          { name: 'Cancel', value: 'cancel' }
+        ]
+      }
+    ]);
+
+    if (action === 'list') {
+      console.log('\nAvailable Models:\n');
+      console.log(getModelList());
+    } else if (action === 'current') {
+      const config = getModelConfig();
+      log.info(`Current model: ${config.modelId}`);
+      log.info(`Temperature: ${config.temperature}`);
+    } else if (action === 'switch') {
+      const { modelId } = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'modelId',
+          message: 'Enter model ID:'
+        }
+      ]);
+
+      const validation = validateModelId(modelId);
+      if (validation.valid) {
+        setActiveModel(modelId);
+        log.success(`Switched to model: ${modelId}`);
+      } else {
+        log.error(validation.error || 'Invalid model');
+        if (validation.suggested) {
+          log.info(`Did you mean: ${validation.suggested}?`);
+        }
+      }
+    }
+  });
+
+// Main interactive mode
 program
   .action(async () => {
-    banner();
-
     // Check API Key
     let apiKey = getApiKey();
     if (!apiKey) {
@@ -63,41 +128,63 @@ program
       apiKey = key.trim();
     }
 
+    // Initialize tool registry
+    const toolRegistry = new ToolRegistry();
+    toolRegistry.register(new ReadFileTool());
+    toolRegistry.register(new WriteFileTool());
+    toolRegistry.register(new EditFileTool());
+    toolRegistry.register(new GlobTool());
+    toolRegistry.register(new GrepTool());
+    toolRegistry.register(new BashTool());
+    toolRegistry.register(new GitStatusTool());
+    toolRegistry.register(new GitDiffTool());
+    toolRegistry.register(new GitLogTool());
+    toolRegistry.register(new GitCommitTool());
+    toolRegistry.register(new GitBranchTool());
+    toolRegistry.register(new GitPushTool());
+    toolRegistry.register(new TodoTool());
+
+    // Initialize safety checker and tool executor
+    const safetyChecker = new SafetyChecker();
+    const toolExecutor = new ToolExecutor(toolRegistry, safetyChecker);
+
+    // Initialize model provider
+    const modelConfig = getModelConfig();
+    const modelProvider = new GroqProvider(modelConfig.modelId, modelConfig.temperature);
     try {
-        initGroq();
+      modelProvider.initialize(apiKey, modelConfig.modelId);
     } catch (e) {
-        log.error('Failed to initialize Groq client.');
-        process.exit(1);
+      log.error('Failed to initialize model.');
+      process.exit(1);
     }
+
+    // Display banner
+    banner(modelConfig.modelId, toolRegistry.count());
 
     // Context Gathering
     const spinner = ora('Checking context...').start();
     const isRepo = await isGitRepo();
     let contextMessage = '';
-    
+
     if (isRepo) {
         spinner.text = 'Git repository detected. Gathering file structure...';
         const files = await getFileTree();
-        // Limit context to file names for now to save tokens, read content only if asked?
-        // For a simple CLI, let's just dump the file tree as context.
         contextMessage = `\n\nCurrent Working Directory Context:\nFile List:\n${files.join('\n')}`;
         spinner.succeed(`Context loaded (${files.length} files detected).`);
     } else {
         spinner.succeed('No Git repository detected. Running in standalone mode.');
     }
 
-    const messages: Message[] = [
-      {
-        role: 'system',
-        content: `You are an expert coding assistant. You are running in a CLI tool.
-        Capabilities:
-        - You can write code in any language.
-        - You should provide concise, correct, and well-formatted code.
-        - You have access to the file structure of the current directory if it is a git repo.
-        ${contextMessage}
-        `
-      }
-    ];
+    // Initialize chat handler
+    const chatHandler = new ChatHandler(toolRegistry, toolExecutor, modelProvider, contextMessage);
+
+    log.info('Type "/" for commands menu, or start chatting!');
+
+    // Display any existing todos
+    const session = getSessionData();
+    if (session.todos && session.todos.length > 0) {
+      showTodoList(session.todos);
+    }
 
     // Chat Loop
     while (true) {
@@ -109,18 +196,21 @@ program
         },
       ]);
 
-      // Handle Slash Commands
+      // Handle Slash Commands Menu
       if (userInput.trim() === '/') {
         const { action } = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'action',
-                message: 'Slash Commands:',
+                message: 'Commands:',
                 choices: [
-                    { name: 'Review Code', value: 'review' },
-                    { name: 'Analyze Project', value: 'analyze' },
+                    { name: 'List Tools', value: 'tools' },
+                    { name: 'Show Todos', value: 'todos' },
+                    { name: 'Clear Todos', value: 'clear_todos' },
                     { name: 'Display Context', value: 'context' },
                     { name: 'Clear Chat History', value: 'clear' },
+                    { name: 'Switch Model', value: 'model' },
+                    { name: 'Show Preferences', value: 'prefs' },
                     { name: 'Update API Key', value: 'config' },
                     { name: 'Exit', value: 'exit' },
                     { name: 'Cancel', value: 'cancel' }
@@ -128,229 +218,122 @@ program
             }
         ]);
 
-        if (action === 'review') {
-             const { target } = await inquirer.prompt([{
-                type: 'input',
-                name: 'target',
-                message: 'Enter file path to review (or press enter for full context):'
-             }]);
-
-             let contentToReview = '';
-             let filePath = '';
-             
-             if (target.trim()) {
-                 filePath = target.trim();
-                 contentToReview = getFileContent(filePath);
-                 if (!contentToReview) {
-                     log.error('File not found or empty.');
-                     continue;
-                 }
-             } else {
-                 contentToReview = contextMessage;
-             }
-             
-             const spinner = ora('Reviewing code...').start();
-             
-             const reviewPrompt = `
-             Please review the following code.
-             File: ${filePath || 'Current Context'}
-             Code:
-             ${contentToReview}
-             
-             1. Analyze for bugs, improvements, and best practices.
-             2. If you find improvements, provide the FULL corrected code for the file wrapped in <<<CODE>>> and <<<CODE>>> delimiters.
-             Example:
-             <<<CODE>>>
-             const a = 1;
-             <<<CODE>>>
-             `;
-
-             messages.push({ role: 'user', content: reviewPrompt });
-
-             try {
-                const stream = await streamChat(messages);
-                let assistantResponse = '';
-                process.stdout.write('\n');
-                
-                for await (const chunk of stream) {
-                    const content = chunk.content;
-                    if (typeof content === 'string') {
-                       process.stdout.write(content);
-                       assistantResponse += content;
-                    }
-                }
-                process.stdout.write('\n\n');
-                messages.push({ role: 'assistant', content: assistantResponse });
-                spinner.stop();
-
-                // Check for code block to apply
-                const codeMatch = assistantResponse.match(/<<<CODE>>>([\s\S]*?)<<<CODE>>>/);
-                if (codeMatch && codeMatch[1] && filePath) {
-                    const { apply } = await inquirer.prompt([{
-                        type: 'confirm',
-                        name: 'apply',
-                        message: `AI suggested changes for ${filePath}. Apply them now?`,
-                        default: false
-                    }]);
-
-                    if (apply) {
-                        const { writeFile } = require('./lib/context');
-                        writeFile(filePath, codeMatch[1].trim());
-                        log.success(`Successfully updated ${filePath}`);
-                    }
-                }
-             } catch (e: any) {
-                 spinner.fail(`Review failed: ${e.message}`);
-                 log.error(e);
-             }
-             continue;
+        if (action === 'tools') {
+          console.log('\n📦 Available Tools:\n');
+          console.log(toolRegistry.getToolDescriptions());
+          console.log('');
+          continue;
         }
 
-        if (action === 'analyze') {
-            const spinner = ora('Analyzing project structure...').start();
-            try {
-                const files = await getFileTree();
-                const packageJson = getFileContent('package.json');
-                const readme = getFileContent('README.md');
-                
-                const analysisPrompt = `
-                Please analyze this project based on its file structure and key files.
-                
-                File Structure:
-                ${files.slice(0, 100).join('\n')}${files.length > 100 ? '\n...(truncated)' : ''}
-                
-                package.json:
-                ${packageJson}
-                
-                README.md:
-                ${readme}
-                
-                Provide a summary of what this project does, its tech stack, and any observations.
-                `;
-                
-                spinner.succeed('Context gathered. Generating analysis...');
-                
-                messages.push({ role: 'user', content: analysisPrompt });
-                const stream = await streamChat(messages);
-                let assistantResponse = '';
-                process.stdout.write('\n');
-                for await (const chunk of stream) {
-                    const content = chunk.content;
-                    if (typeof content === 'string') {
-                       process.stdout.write(content);
-                       assistantResponse += content;
-                    }
-                }
-                process.stdout.write('\n\n');
-                messages.push({ role: 'assistant', content: assistantResponse });
+        if (action === 'todos') {
+          const session = getSessionData();
+          showTodoList(session.todos);
+          continue;
+        }
 
-            } catch (e: any) {
-                spinner.fail(`Analysis failed: ${e.message}`);
-                log.error(e);
-            }
-            continue;
+        if (action === 'clear_todos') {
+          clearSessionData();
+          log.success('Todos cleared.');
+          continue;
         }
 
         if (action === 'context') {
             log.info(contextMessage || 'No context loaded.');
             continue;
         }
+
         if (action === 'clear') {
-            messages.length = 1; // Keep system prompt
+            chatHandler.clearHistory();
             log.success('Chat history cleared.');
             continue;
         }
+
+        if (action === 'model') {
+          console.log('\nAvailable Models:\n');
+          console.log(getModelList());
+          console.log('');
+
+          const { newModel } = await inquirer.prompt([
+            {
+              type: 'input',
+              name: 'newModel',
+              message: 'Enter model ID (or press enter to cancel):'
+            }
+          ]);
+
+          if (newModel.trim()) {
+            const validation = validateModelId(newModel.trim());
+            if (validation.valid) {
+              setActiveModel(newModel.trim());
+              modelProvider.setModel(newModel.trim());
+              log.success(`Switched to model: ${newModel.trim()}`);
+            } else {
+              log.error(validation.error || 'Invalid model');
+              if (validation.suggested) {
+                log.info(`Did you mean: ${validation.suggested}?`);
+              }
+            }
+          }
+          continue;
+        }
+
+        if (action === 'prefs') {
+          const prefs = getPreferences();
+          console.log('\n⚙️  Current Preferences:\n');
+          console.log(`  Temperature: ${prefs.temperature}`);
+          console.log(`  Auto-Confirm: ${prefs.autoConfirm}`);
+          console.log(`  Safe Mode: ${prefs.safeMode}`);
+          console.log('');
+          continue;
+        }
+
         if (action === 'config') {
-             const { key } = await inquirer.prompt([{ type: 'password', name: 'key', message: 'Enter new API Key:', mask: '*' }]);
+             const { key } = await inquirer.prompt([{
+               type: 'password',
+               name: 'key',
+               message: 'Enter new API Key:',
+               mask: '*'
+             }]);
              setApiKey(key.trim());
-             initGroq();
+             modelProvider.initialize(key.trim(), modelConfig.modelId);
              log.success('API Key updated.');
              continue;
         }
+
         if (action === 'exit') process.exit(0);
         if (action === 'cancel') continue;
       }
 
+      // Handle direct slash commands
       if (userInput.startsWith('/')) {
         const cmd = userInput.trim().toLowerCase();
         if (cmd === '/exit' || cmd === '/quit') process.exit(0);
         if (cmd === '/clear') {
-            messages.length = 1; 
-            log.success('History cleared.'); 
+            chatHandler.clearHistory();
+            log.success('History cleared.');
             continue;
         }
         if (cmd === '/context') {
             log.info(contextMessage || 'No context.');
             continue;
         }
-        log.warning(`Unknown command: ${cmd}`);
+        if (cmd === '/tools') {
+          console.log('\n📦 Available Tools:\n');
+          console.log(toolRegistry.getToolDescriptions());
+          console.log('');
+          continue;
+        }
+        if (cmd === '/todos') {
+          const session = getSessionData();
+          showTodoList(session.todos);
+          continue;
+        }
+        log.warning(`Unknown command: ${cmd}. Type "/" for menu.`);
         continue;
       }
 
-      // Auto-Context: Attach file content if mentioned
-      let finalContent = userInput;
-      const allFiles = await getFileTree();
-      const attached = [];
-
-      for (const file of allFiles) {
-          // Check for full path or basename match
-          const base = file.split('/').pop() || '';
-          // Avoid matching common words if basename is short (e.g. 'ui.ts' is fine, 'index.ts' is fine, 'a' is not)
-          const isBaseMatch = base.length > 2 && userInput.includes(base);
-          const isPathMatch = userInput.includes(file);
-
-          if (isPathMatch || isBaseMatch) {
-              const content = getFileContent(file);
-              if (content) {
-                  finalContent += `\n\n[System: Attached content of ${file}]\n\`\`\`\n${content}\n\`\`\``;
-                  attached.push(file);
-              }
-          }
-      }
-
-      if (attached.length > 0) {
-          log.info(`Analyzed and attached context for: ${attached.join(', ')}`);
-      }
-
-      messages.push({ role: 'user', content: finalContent });
-
-      try {
-        const stream = await streamChat(messages);
-        let assistantResponse = '';
-        process.stdout.write('\n'); // Newline before response
-
-        for await (const chunk of stream) {
-            const content = chunk.content || '';
-            if (typeof content === 'string') {
-                process.stdout.write(content);
-                assistantResponse += content;
-            }
-        }
-
-        process.stdout.write('\n\n'); // Newline after response
-        messages.push({ role: 'assistant', content: assistantResponse });
-
-        // Check for code block to apply (for normal chat as well)
-        const codeMatch = assistantResponse.match(/<<<CODE>>>([\s\S]*?)<<<CODE>>>/);
-        if (codeMatch && codeMatch[1] && attached.length === 1) {
-             // Only auto-suggest apply if exactly one file was discussed/attached to avoid ambiguity
-             const filePath = attached[0];
-             const { apply } = await inquirer.prompt([{
-                type: 'confirm',
-                name: 'apply',
-                message: `AI suggested changes for ${filePath}. Apply them now?`,
-                default: false
-            }]);
-
-            if (apply) {
-                const { writeFile } = require('./lib/context');
-                writeFile(filePath, codeMatch[1].trim());
-                log.success(`Successfully updated ${filePath}`);
-            }
-        }
-      } catch (error: any) {
-        log.error(`Error: ${error.message}`);
-      }
+      // Process user input with chat handler
+      await chatHandler.processUserInput(userInput);
     }
   });
 
