@@ -18,11 +18,10 @@ exports.initGroq = initGroq;
 const streamChat = async (messages) => {
     if (!groqClient)
         (0, exports.initGroq)();
-    // Default model to mixtral or llama3 if available, user can change later if needed
-    // 'llama3-70b-8192' is a good default for coding
+    // Default model to llama-3.3-70b-versatile
     return await groqClient.chat.completions.create({
         messages,
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        model: 'llama-3.3-70b-versatile',
         stream: true,
     });
 };

@@ -19,11 +19,10 @@ export type Message = {
 export const streamChat = async (messages: Message[]) => {
     if (!groqClient) initGroq();
     
-    // Default model to mixtral or llama3 if available, user can change later if needed
-    // 'llama3-70b-8192' is a good default for coding
+    // Default model to llama-3.3-70b-versatile
     return await groqClient!.chat.completions.create({
         messages,
-        model: 'llama3-70b-8192', 
+        model: 'llama-3.3-70b-versatile', 
         stream: true,
     });
 };

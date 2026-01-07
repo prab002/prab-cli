@@ -117,6 +117,7 @@ program
                 name: 'action',
                 message: 'Slash Commands:',
                 choices: [
+                    { name: 'Analyze Project', value: 'analyze' },
                     { name: 'Display Context', value: 'context' },
                     { name: 'Clear Chat History', value: 'clear' },
                     { name: 'Update API Key', value: 'config' },
@@ -125,6 +126,49 @@ program
                 ]
             }
         ]);
+
+        if (action === 'analyze') {
+            const spinner = ora('Analyzing project structure...').start();
+            try {
+                const files = await getFileTree();
+                const packageJson = getFileContent('package.json');
+                const readme = getFileContent('README.md');
+                
+                const analysisPrompt = `
+                Please analyze this project based on its file structure and key files.
+                
+                File Structure:
+                ${files.slice(0, 100).join('\n')}${files.length > 100 ? '\n...(truncated)' : ''}
+                
+                package.json:
+                ${packageJson}
+                
+                README.md:
+                ${readme}
+                
+                Provide a summary of what this project does, its tech stack, and any observations.
+                `;
+                
+                spinner.succeed('Context gathered. Generating analysis...');
+                
+                messages.push({ role: 'user', content: analysisPrompt });
+                const stream = await streamChat(messages);
+                let assistantResponse = '';
+                process.stdout.write('\n');
+                for await (const chunk of stream) {
+                    const content = chunk.choices[0]?.delta?.content || '';
+                    process.stdout.write(content);
+                    assistantResponse += content;
+                }
+                process.stdout.write('\n\n');
+                messages.push({ role: 'assistant', content: assistantResponse });
+
+            } catch (e: any) {
+                spinner.fail(`Analysis failed: ${e.message}`);
+                log.error(e);
+            }
+            continue;
+        }
 
         if (action === 'context') {
             log.info(contextMessage || 'No context loaded.');
