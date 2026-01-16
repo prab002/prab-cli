@@ -12,7 +12,7 @@ import { ToolRegistry } from './lib/tools/base';
 import { ToolExecutor } from './lib/tools/executor';
 import { ReadFileTool, WriteFileTool, EditFileTool, GlobTool, GrepTool } from './lib/tools/file-tools';
 import { BashTool } from './lib/tools/shell-tools';
-import { GitStatusTool, GitDiffTool, GitLogTool, GitCommitTool, GitBranchTool, GitPushTool } from './lib/tools/git-tools';
+import { GitStatusTool, GitAddTool, GitDiffTool, GitLogTool, GitCommitTool, GitBranchTool, GitPushTool } from './lib/tools/git-tools';
 import { TodoTool } from './lib/tools/todo-tool';
 
 // Import model system
@@ -22,6 +22,7 @@ import { getModelList, isValidModel, validateModelId } from './lib/models/regist
 // Import chat handler and safety
 import { ChatHandler } from './lib/chat-handler';
 import { SafetyChecker } from './lib/safety';
+import { tracker } from './lib/tracker';
 
 const program = new Command();
 
@@ -137,6 +138,7 @@ program
     toolRegistry.register(new GrepTool());
     toolRegistry.register(new BashTool());
     toolRegistry.register(new GitStatusTool());
+    toolRegistry.register(new GitAddTool());
     toolRegistry.register(new GitDiffTool());
     toolRegistry.register(new GitLogTool());
     toolRegistry.register(new GitCommitTool());
@@ -153,8 +155,11 @@ program
     const modelProvider = new GroqProvider(modelConfig.modelId, modelConfig.temperature);
     try {
       modelProvider.initialize(apiKey, modelConfig.modelId);
-    } catch (e) {
+      tracker.modelInit(modelConfig.modelId, 'groq', true);
+      tracker.sessionStart(modelConfig.modelId, toolRegistry.count());
+    } catch (e: any) {
       log.error('Failed to initialize model.');
+      tracker.modelInit(modelConfig.modelId, 'groq', false, e.message);
       process.exit(1);
     }
 
@@ -262,13 +267,16 @@ program
           ]);
 
           if (newModel.trim()) {
+            const oldModel = modelConfig.modelId;
             const validation = validateModelId(newModel.trim());
             if (validation.valid) {
               setActiveModel(newModel.trim());
               modelProvider.setModel(newModel.trim());
               log.success(`Switched to model: ${newModel.trim()}`);
+              tracker.modelSwitch(oldModel, newModel.trim(), true);
             } else {
               log.error(validation.error || 'Invalid model');
+              tracker.modelSwitch(oldModel, newModel.trim(), false);
               if (validation.suggested) {
                 log.info(`Did you mean: ${validation.suggested}?`);
               }

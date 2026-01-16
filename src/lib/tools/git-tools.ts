@@ -50,6 +50,37 @@ export class GitStatusTool extends Tool {
 }
 
 /**
+ * Stage files for commit (git add)
+ */
+export class GitAddTool extends Tool {
+    name = 'git_add';
+    description = 'Stage files for commit. Use "." to stage all changes, or specify specific files.';
+    requiresConfirmation = false;
+    destructive = false;
+
+    schema = z.object({
+        files: z.array(z.string()).describe('Files to stage. Use ["."] to stage all changes.')
+    });
+
+    async execute(params: z.infer<typeof this.schema>): Promise<ToolResult> {
+        try {
+            await git.add(params.files);
+
+            // Get status to show what was staged
+            const status = await git.status();
+            const stagedFiles = status.staged;
+
+            return this.success(
+                `Staged ${stagedFiles.length} file(s):\n${stagedFiles.map(f => `  + ${f}`).join('\n')}`,
+                { staged: stagedFiles }
+            );
+        } catch (error: any) {
+            return this.error(`Git add failed: ${error.message}`);
+        }
+    }
+}
+
+/**
  * Show git diff
  */
 export class GitDiffTool extends Tool {

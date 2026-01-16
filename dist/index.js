@@ -24,6 +24,7 @@ const registry_1 = require("./lib/models/registry");
 // Import chat handler and safety
 const chat_handler_1 = require("./lib/chat-handler");
 const safety_1 = require("./lib/safety");
+const tracker_1 = require("./lib/tracker");
 const program = new commander_1.Command();
 program
     .name('groq-cli')
@@ -133,6 +134,7 @@ program
     toolRegistry.register(new file_tools_1.GrepTool());
     toolRegistry.register(new shell_tools_1.BashTool());
     toolRegistry.register(new git_tools_1.GitStatusTool());
+    toolRegistry.register(new git_tools_1.GitAddTool());
     toolRegistry.register(new git_tools_1.GitDiffTool());
     toolRegistry.register(new git_tools_1.GitLogTool());
     toolRegistry.register(new git_tools_1.GitCommitTool());
@@ -147,9 +149,12 @@ program
     const modelProvider = new groq_provider_1.GroqProvider(modelConfig.modelId, modelConfig.temperature);
     try {
         modelProvider.initialize(apiKey, modelConfig.modelId);
+        tracker_1.tracker.modelInit(modelConfig.modelId, 'groq', true);
+        tracker_1.tracker.sessionStart(modelConfig.modelId, toolRegistry.count());
     }
     catch (e) {
         ui_1.log.error('Failed to initialize model.');
+        tracker_1.tracker.modelInit(modelConfig.modelId, 'groq', false, e.message);
         process.exit(1);
     }
     // Display banner
@@ -242,14 +247,17 @@ program
                     }
                 ]);
                 if (newModel.trim()) {
+                    const oldModel = modelConfig.modelId;
                     const validation = (0, registry_1.validateModelId)(newModel.trim());
                     if (validation.valid) {
                         (0, config_1.setActiveModel)(newModel.trim());
                         modelProvider.setModel(newModel.trim());
                         ui_1.log.success(`Switched to model: ${newModel.trim()}`);
+                        tracker_1.tracker.modelSwitch(oldModel, newModel.trim(), true);
                     }
                     else {
                         ui_1.log.error(validation.error || 'Invalid model');
+                        tracker_1.tracker.modelSwitch(oldModel, newModel.trim(), false);
                         if (validation.suggested) {
                             ui_1.log.info(`Did you mean: ${validation.suggested}?`);
                         }

@@ -5,6 +5,7 @@ import { ModelProvider } from './models/provider';
 import { Message, ToolCall } from '../types';
 import { getFileTree, getFileContent } from './context';
 import { log } from './ui';
+import { tracker } from './tracker';
 
 /**
  * Handles chat interactions with AI, tool calling, and context management
@@ -61,6 +62,11 @@ When you need to perform file operations, use the appropriate tools rather than 
      * Process user input and generate response with tool support
      */
     async processUserInput(input: string): Promise<void> {
+        const startTime = Date.now();
+
+        // Log prompt received
+        tracker.promptReceived(input);
+
         try {
             // Auto-attach file context if files are mentioned
             const attachedFiles = await this.attachMentionedFiles(input);
@@ -68,6 +74,7 @@ When you need to perform file operations, use the appropriate tools rather than 
 
             if (attachedFiles.length > 0) {
                 log.info(`Attached context for: ${attachedFiles.join(', ')}`);
+                tracker.contextAttached(attachedFiles);
             }
 
             // Add user message
@@ -83,6 +90,16 @@ When you need to perform file operations, use the appropriate tools rather than 
 
             while (continueLoop && iterationCount < maxIterations) {
                 iterationCount++;
+                tracker.iteration(iterationCount, 'Starting API call');
+
+                // Log API request
+                tracker.apiRequest(
+                    this.modelProvider.modelId,
+                    this.messages.length,
+                    tools.length
+                );
+
+                const apiStartTime = Date.now();
 
                 // Stream response from model
                 const stream = this.modelProvider.streamChat(this.messages, tools);
@@ -91,23 +108,49 @@ When you need to perform file operations, use the appropriate tools rather than 
 
                 process.stdout.write('\n');
 
-                for await (const chunk of stream) {
-                    // Handle text content
-                    if (chunk.content && typeof chunk.content === 'string') {
-                        process.stdout.write(chunk.content);
-                        fullResponse += chunk.content;
+                try {
+                    for await (const chunk of stream) {
+                        // Handle text content
+                        if (chunk.content && typeof chunk.content === 'string') {
+                            process.stdout.write(chunk.content);
+                            fullResponse += chunk.content;
+                        }
+
+                        // Handle tool calls
+                        if (chunk.tool_calls && chunk.tool_calls.length > 0) {
+                            toolCalls = chunk.tool_calls;
+                        }
                     }
 
-                    // Handle tool calls
-                    if (chunk.tool_calls && chunk.tool_calls.length > 0) {
-                        toolCalls = chunk.tool_calls;
-                    }
+                    // Log API response
+                    const apiDuration = Date.now() - apiStartTime;
+                    tracker.apiResponse(
+                        fullResponse.length > 0,
+                        toolCalls.length > 0,
+                        toolCalls.length,
+                        apiDuration
+                    );
+
+                } catch (apiError: any) {
+                    tracker.apiError(apiError.message, { stack: apiError.stack });
+                    throw apiError;
                 }
 
                 process.stdout.write('\n\n');
 
+                // Log AI response if there's content
+                if (fullResponse.length > 0) {
+                    tracker.aiResponse(fullResponse);
+                }
+
                 // If we have tool calls, execute them
                 if (toolCalls.length > 0) {
+                    // Log AI's tool decision
+                    tracker.aiToolDecision(toolCalls.map(tc => ({
+                        name: tc.name,
+                        args: tc.args || {}
+                    })));
+
                     // Add AI message with tool calls
                     this.messages.push(new AIMessage({
                         content: fullResponse,
@@ -129,21 +172,30 @@ When you need to perform file operations, use the appropriate tools rather than 
                         }));
                     }
 
+                    tracker.iteration(iterationCount, 'Tool execution complete, continuing loop');
                     // Continue loop to get AI's response after tool execution
                     continue;
                 } else {
                     // No tool calls, add final AI message and end loop
                     this.messages.push(new AIMessage(fullResponse));
                     continueLoop = false;
+                    tracker.iteration(iterationCount, 'No tool calls, ending loop');
                 }
             }
 
             if (iterationCount >= maxIterations) {
                 log.warning('Maximum iteration limit reached. Ending conversation turn.');
+                tracker.warn('Max iterations reached', { iterations: iterationCount });
             }
+
+            // Log success
+            const duration = Date.now() - startTime;
+            tracker.promptComplete(input, duration, iterationCount);
 
         } catch (error: any) {
             log.error(`Error: ${error.message}`);
+            tracker.promptFailed(input, error.message);
+            tracker.error('Chat processing failed', error);
         }
     }
 
@@ -190,6 +242,7 @@ When you need to perform file operations, use the appropriate tools rather than 
     clearHistory() {
         const systemMsg = this.messages[0];
         this.messages = [systemMsg];
+        tracker.debug('Chat history cleared');
     }
 
     /**

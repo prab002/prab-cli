@@ -10,6 +10,9 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "dev:watch": "nodemon --exec ts-node src/index.ts",
+    "log": "ts-node src/log-viewer.ts",
+    "log:list": "ts-node src/log-viewer.ts list",
+    "log:help": "ts-node src/log-viewer.ts help",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GitPushTool = exports.GitBranchTool = exports.GitCommitTool = exports.GitLogTool = exports.GitDiffTool = exports.GitStatusTool = void 0;
+exports.GitPushTool = exports.GitBranchTool = exports.GitCommitTool = exports.GitLogTool = exports.GitDiffTool = exports.GitAddTool = exports.GitStatusTool = void 0;
 const zod_1 = require("zod");
 const base_1 = require("./base");
 const simple_git_1 = __importDefault(require("simple-git"));
@@ -52,6 +52,34 @@ class GitStatusTool extends base_1.Tool {
     }
 }
 exports.GitStatusTool = GitStatusTool;
+/**
+ * Stage files for commit (git add)
+ */
+class GitAddTool extends base_1.Tool {
+    constructor() {
+        super(...arguments);
+        this.name = 'git_add';
+        this.description = 'Stage files for commit. Use "." to stage all changes, or specify specific files.';
+        this.requiresConfirmation = false;
+        this.destructive = false;
+        this.schema = zod_1.z.object({
+            files: zod_1.z.array(zod_1.z.string()).describe('Files to stage. Use ["."] to stage all changes.')
+        });
+    }
+    async execute(params) {
+        try {
+            await git.add(params.files);
+            // Get status to show what was staged
+            const status = await git.status();
+            const stagedFiles = status.staged;
+            return this.success(`Staged ${stagedFiles.length} file(s):\n${stagedFiles.map(f => `  + ${f}`).join('\n')}`, { staged: stagedFiles });
+        }
+        catch (error) {
+            return this.error(`Git add failed: ${error.message}`);
+        }
+    }
+}
+exports.GitAddTool = GitAddTool;
 /**
  * Show git diff
  */
