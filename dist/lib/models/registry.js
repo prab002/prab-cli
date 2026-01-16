@@ -12,6 +12,14 @@ exports.validateModelId = validateModelId;
  * Note: Whisper models are excluded as they are audio transcription models, not chat models
  */
 exports.MODEL_REGISTRY = {
+    // OpenAI-compatible models on Groq - Better function calling
+    'openai/gpt-oss-20b': {
+        id: 'openai/gpt-oss-20b',
+        provider: 'groq',
+        capabilities: ['chat', 'streaming', 'function_calling'],
+        description: 'GPT-OSS 20B - OpenAI-compatible model with better function calling'
+    },
+    // Groq Models
     'llama-3.3-70b-versatile': {
         id: 'llama-3.3-70b-versatile',
         provider: 'groq',
@@ -65,7 +73,7 @@ function getAllModelIds() {
  * Get default model ID
  */
 function getDefaultModel() {
-    return 'llama-3.3-70b-versatile';
+    return 'openai/gpt-oss-20b';
 }
 /**
  * Get formatted list of models for display
