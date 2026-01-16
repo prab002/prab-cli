@@ -77,14 +77,15 @@ export class ToolExecutor {
             } else {
                 spinner.fail(`${tool.name} failed`);
                 log.toolResult(false, result.error || 'Unknown error');
-                tracker.toolError(tool.name, result.error || 'Unknown error', duration);
+                // Log error with args for debugging
+                tracker.toolError(tool.name, result.error || 'Unknown error', duration, toolCall.args);
             }
 
             return result;
         } catch (error: any) {
             const duration = Date.now() - startTime;
             log.error(`Tool execution error: ${error.message}`);
-            tracker.toolError(tool.name, error.message, duration);
+            tracker.toolError(tool.name, error.message, duration, toolCall.args);
             return {
                 success: false,
                 output: '',

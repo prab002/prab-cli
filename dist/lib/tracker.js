@@ -27,11 +27,14 @@ class SuperTracker {
         }
     }
     /**
-     * Write a log entry to file
+     * Write a log entry to file (with immediate flush)
      */
     write(entry) {
         const line = JSON.stringify(entry) + '\n';
-        fs_1.default.appendFileSync(this.logFile, line);
+        const fd = fs_1.default.openSync(this.logFile, 'a');
+        fs_1.default.writeSync(fd, line);
+        fs_1.default.fsyncSync(fd);
+        fs_1.default.closeSync(fd);
     }
     /**
      * Log session start
@@ -147,13 +150,13 @@ class SuperTracker {
     /**
      * Log tool execution failure
      */
-    toolError(toolName, error, duration) {
+    toolError(toolName, error, duration, args) {
         this.write({
             timestamp: new Date().toISOString(),
             level: 'error',
             event: 'TOOL_ERROR',
-            message: `Tool failed: ${toolName} - ${error}`,
-            data: { toolName, error },
+            message: `Tool failed: ${toolName}`,
+            data: { toolName, error, args, errorMessage: error },
             duration
         });
     }

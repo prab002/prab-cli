@@ -111,6 +111,14 @@ function formatEntry(entry, verbose) {
                 }
                 break;
             case 'TOOL_ERROR':
+                if (entry.data.error || entry.data.errorMessage) {
+                    lines.push(chalk_1.default.red(`${indent}Error: ${entry.data.errorMessage || entry.data.error}`));
+                }
+                if (entry.data.args) {
+                    const argsStr = JSON.stringify(entry.data.args);
+                    lines.push(chalk_1.default.dim(`${indent}Args: ${argsStr.substring(0, 150)}${argsStr.length > 150 ? '...' : ''}`));
+                }
+                break;
             case 'API_ERROR':
             case 'PROMPT_FAILED':
                 if (entry.data.error) {
