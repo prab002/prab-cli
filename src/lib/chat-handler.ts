@@ -7,6 +7,13 @@ import { getFileTree, getFileContent } from './context';
 import { log, StreamFormatter } from './ui';
 import { tracker } from './tracker';
 
+export interface UsageStats {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    requestCount: number;
+}
+
 /**
  * Handles chat interactions with AI, tool calling, and context management
  */
@@ -16,6 +23,12 @@ export class ChatHandler {
     private toolExecutor: ToolExecutor;
     private modelProvider: ModelProvider;
     private contextMessage: string = '';
+    private usage: UsageStats = {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+        requestCount: 0,
+    };
 
     constructor(
         toolRegistry: ToolRegistry,
@@ -125,7 +138,17 @@ When you need to perform file operations, use the appropriate tools rather than 
                         if (chunk.tool_calls && chunk.tool_calls.length > 0) {
                             toolCalls = chunk.tool_calls;
                         }
+
+                        // Capture usage metadata from the chunk
+                        if (chunk.usage_metadata) {
+                            this.usage.promptTokens += chunk.usage_metadata.input_tokens || 0;
+                            this.usage.completionTokens += chunk.usage_metadata.output_tokens || 0;
+                            this.usage.totalTokens += chunk.usage_metadata.total_tokens || 0;
+                        }
                     }
+
+                    // Increment request count
+                    this.usage.requestCount++;
 
                     // Flush any remaining content in the formatter
                     const remaining = formatter.flush();
@@ -261,6 +284,13 @@ When you need to perform file operations, use the appropriate tools rather than 
      */
     getMessageCount(): number {
         return this.messages.length;
+    }
+
+    /**
+     * Get usage statistics
+     */
+    getUsageStats(): UsageStats {
+        return { ...this.usage };
     }
 
     /**

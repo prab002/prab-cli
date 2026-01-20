@@ -12,6 +12,12 @@ class ChatHandler {
     constructor(toolRegistry, toolExecutor, modelProvider, initialContext) {
         this.messages = [];
         this.contextMessage = '';
+        this.usage = {
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
+            requestCount: 0,
+        };
         this.toolRegistry = toolRegistry;
         this.toolExecutor = toolExecutor;
         this.modelProvider = modelProvider;
@@ -92,7 +98,15 @@ When you need to perform file operations, use the appropriate tools rather than 
                         if (chunk.tool_calls && chunk.tool_calls.length > 0) {
                             toolCalls = chunk.tool_calls;
                         }
+                        // Capture usage metadata from the chunk
+                        if (chunk.usage_metadata) {
+                            this.usage.promptTokens += chunk.usage_metadata.input_tokens || 0;
+                            this.usage.completionTokens += chunk.usage_metadata.output_tokens || 0;
+                            this.usage.totalTokens += chunk.usage_metadata.total_tokens || 0;
+                        }
                     }
+                    // Increment request count
+                    this.usage.requestCount++;
                     // Flush any remaining content in the formatter
                     const remaining = formatter.flush();
                     if (remaining) {
@@ -204,6 +218,12 @@ When you need to perform file operations, use the appropriate tools rather than 
      */
     getMessageCount() {
         return this.messages.length;
+    }
+    /**
+     * Get usage statistics
+     */
+    getUsageStats() {
+        return { ...this.usage };
     }
     /**
      * Update context (e.g., if file tree changes)

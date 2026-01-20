@@ -13,6 +13,8 @@ import {
 import { isGitRepo, getFileTree } from "./lib/context";
 import { log, banner, showTodoList } from "./lib/ui";
 import { getSessionData } from "./lib/config";
+import { showSlashCommandMenu } from "./lib/slash-commands";
+import select, { Separator } from "@inquirer/select";
 import ora from "ora";
 
 // Import tool system
@@ -229,7 +231,7 @@ program.action(async () => {
     contextMessage
   );
 
-  log.info('Type "/" for commands menu, or start chatting!');
+  log.info('Type "/" for commands (searchable), or start chatting!');
 
   // Display any existing todos
   const session = getSessionData();
@@ -247,198 +249,167 @@ program.action(async () => {
       },
     ]);
 
-    // Handle Slash Commands Menu
-    if (userInput.trim() === "/") {
+    // Handle Slash Commands
+    if (userInput.trim() === "/" || userInput.trim().startsWith("/")) {
       const currentModel = modelProvider.modelId;
 
-      console.log("\n┌────────────────────────────────────────┐");
-      console.log("│           AVAILABLE COMMANDS           │");
-      console.log("└────────────────────────────────────────┘\n");
+      // Show the searchable slash command menu
+      const action = await showSlashCommandMenu();
 
-      const { action } = await inquirer.prompt([
-        {
-          type: "list",
-          name: "action",
-          message: "Choose an option:",
-          choices: [
-            "1. Select Model",
-            "2. Usage",
-            "3. Tools",
-            "4. Todos",
-            "5. Clear Todos",
-            "6. Context",
-            "7. Clear History",
-            "8. API Key",
-            "9. Exit",
-          ],
-        },
-      ]);
+      if (!action) {
+        // User cancelled
+        continue;
+      }
 
-      // Select Model - Toggle between different models
-      if (action === "1. Select Model") {
-        // Fetch models from Groq API if not cached
-        if (cachedModels.length === 0) {
-          const spinner = ora("Fetching available models from Groq...").start();
-          cachedModels = await fetchGroqModels(apiKey);
-          spinner.succeed(`Found ${cachedModels.length} models`);
-        }
-
-        // Group models by owner
-        const grouped = groupModelsByOwner(cachedModels);
-        const modelChoices: any[] = [];
-
-        // Build choices grouped by owner
-        for (const [owner, models] of grouped) {
-          modelChoices.push(new inquirer.Separator(`─── ${owner} ───`));
-          for (const model of models) {
-            const isCurrent = model.id === currentModel;
-            const ctx = formatContextWindow(model.context_window);
-            modelChoices.push({
-              name: `${isCurrent ? "✓ " : "  "}${model.id} (${ctx} ctx)`,
-              value: model.id,
-              short: model.id,
-            });
+      // Execute the selected command
+      switch (action) {
+        case "model": {
+          // Fetch models from Groq API if not cached
+          if (cachedModels.length === 0) {
+            const spinner = ora("Fetching available models from Groq...").start();
+            cachedModels = await fetchGroqModels(apiKey);
+            spinner.succeed(`Found ${cachedModels.length} models`);
           }
+
+          // Group models by owner
+          const grouped = groupModelsByOwner(cachedModels);
+          const modelChoices: Array<{ name: string; value: string } | Separator> = [];
+
+          // Build choices grouped by owner
+          for (const [owner, models] of grouped) {
+            modelChoices.push(new Separator(`─── ${owner} ───`));
+            for (const model of models) {
+              const isCurrent = model.id === currentModel;
+              const ctx = formatContextWindow(model.context_window);
+              modelChoices.push({
+                name: `${isCurrent ? "✓ " : "  "}${model.id} (${ctx} ctx)`,
+                value: model.id,
+              });
+            }
+          }
+
+          try {
+            const selectedModel = await select({
+              message: `Select a model (current: ${currentModel}):`,
+              choices: modelChoices,
+              pageSize: 15,
+              loop: false,
+            });
+
+            if (selectedModel && selectedModel !== currentModel) {
+              const oldModel = currentModel;
+              setActiveModel(selectedModel);
+              modelProvider.setModel(selectedModel);
+              log.success(`Switched to model: ${selectedModel}`);
+              tracker.modelSwitch(oldModel, selectedModel, true);
+            } else if (selectedModel === currentModel) {
+              log.info(`Already using ${selectedModel}`);
+            }
+          } catch (e) {
+            // User cancelled with Ctrl+C
+          }
+          break;
         }
 
-        const { selectedModel } = await inquirer.prompt([
-          {
-            type: "list",
-            name: "selectedModel",
-            message: `Select a model (current: ${currentModel}):`,
-            choices: modelChoices,
-            pageSize: 15,
-            loop: false,
-          },
-        ]);
+        case "usage": {
+          console.log("\n┌─────────────────────────────────────┐");
+          console.log("│           MODEL INFO                │");
+          console.log("└─────────────────────────────────────┘\n");
 
-        if (selectedModel && selectedModel !== currentModel) {
-          const oldModel = currentModel;
-          setActiveModel(selectedModel);
-          modelProvider.setModel(selectedModel);
-          log.success(`Switched to model: ${selectedModel}`);
-          tracker.modelSwitch(oldModel, selectedModel, true);
-        } else if (selectedModel === currentModel) {
-          log.info(`Already using ${selectedModel}`);
-        }
-        continue;
-      }
+          console.log(`  Current Model: ${currentModel}`);
 
-      // Usage - Show model usage and stats
-      if (action === "2. Usage") {
-        console.log("\n┌─────────────────────────────────────┐");
-        console.log("│           MODEL USAGE               │");
-        console.log("└─────────────────────────────────────┘\n");
+          // Find model in cache and show details
+          if (cachedModels.length === 0) {
+            const spinner = ora("Fetching model info...").start();
+            cachedModels = await fetchGroqModels(apiKey);
+            spinner.stop();
+          }
 
-        console.log(`  Current Model: ${currentModel}`);
+          const modelInfo = cachedModels.find((m) => m.id === currentModel);
+          if (modelInfo) {
+            console.log(`  Provider:      ${modelInfo.owned_by}`);
+            console.log(`  Context:       ${formatContextWindow(modelInfo.context_window)} tokens`);
+            console.log(`  Status:        ${modelInfo.active ? "Active" : "Inactive"}`);
+          }
 
-        // Find model in cache and show details
-        if (cachedModels.length === 0) {
-          const spinner = ora("Fetching model info...").start();
-          cachedModels = await fetchGroqModels(apiKey);
-          spinner.stop();
-        }
+          console.log("\n┌─────────────────────────────────────┐");
+          console.log("│         TOKEN CONSUMPTION           │");
+          console.log("└─────────────────────────────────────┘\n");
 
-        const modelInfo = cachedModels.find((m) => m.id === currentModel);
-        if (modelInfo) {
-          console.log(`  Provider:      ${modelInfo.owned_by}`);
-          console.log(`  Context:       ${formatContextWindow(modelInfo.context_window)} tokens`);
-          console.log(`  Status:        ${modelInfo.active ? "Active" : "Inactive"}`);
+          const usageStats = chatHandler.getUsageStats();
+          console.log(`  Prompt Tokens:     ${usageStats.promptTokens.toLocaleString()}`);
+          console.log(`  Completion Tokens: ${usageStats.completionTokens.toLocaleString()}`);
+          console.log(`  Total Tokens:      ${usageStats.totalTokens.toLocaleString()}`);
+          console.log(`  API Requests:      ${usageStats.requestCount}`);
+
+          console.log("\n┌─────────────────────────────────────┐");
+          console.log("│          SESSION STATS              │");
+          console.log("└─────────────────────────────────────┘\n");
+
+          console.log(`  Messages:      ${chatHandler.getMessageCount()}`);
+          console.log(`  Tools:         ${toolRegistry.count()} available`);
+          console.log(`  Session ID:    ${tracker.getSessionId()}`);
+          console.log("");
+          break;
         }
 
-        console.log("\n┌─────────────────────────────────────┐");
-        console.log("│          SESSION STATS              │");
-        console.log("└─────────────────────────────────────┘\n");
+        case "tools": {
+          console.log("\n┌─────────────────────────────────────┐");
+          console.log("│         AVAILABLE TOOLS             │");
+          console.log("└─────────────────────────────────────┘\n");
+          console.log(toolRegistry.getToolDescriptions());
+          console.log("");
+          break;
+        }
 
-        console.log(`  Messages:      ${chatHandler.getMessageCount()}`);
-        console.log(`  Tools:         ${toolRegistry.count()} available`);
-        console.log(`  Session ID:    ${tracker.getSessionId()}`);
-        console.log("");
-        continue;
-      }
+        case "todos": {
+          const session = getSessionData();
+          showTodoList(session.todos);
+          break;
+        }
 
-      if (action === "3. Tools") {
-        console.log("\n┌─────────────────────────────────────┐");
-        console.log("│         AVAILABLE TOOLS             │");
-        console.log("└─────────────────────────────────────┘\n");
-        console.log(toolRegistry.getToolDescriptions());
-        console.log("");
-        continue;
-      }
+        case "clear-todos": {
+          clearSessionData();
+          log.success("Todos cleared.");
+          break;
+        }
 
-      if (action === "4. Todos") {
-        const session = getSessionData();
-        showTodoList(session.todos);
-        continue;
-      }
+        case "context": {
+          console.log("\n┌─────────────────────────────────────┐");
+          console.log("│          FILE CONTEXT               │");
+          console.log("└─────────────────────────────────────┘\n");
+          console.log(contextMessage || "  No context loaded.");
+          console.log("");
+          break;
+        }
 
-      if (action === "5. Clear Todos") {
-        clearSessionData();
-        log.success("Todos cleared.");
-        continue;
-      }
+        case "clear": {
+          chatHandler.clearHistory();
+          log.success("Chat history cleared.");
+          break;
+        }
 
-      if (action === "6. Context") {
-        console.log("\n┌─────────────────────────────────────┐");
-        console.log("│          FILE CONTEXT               │");
-        console.log("└─────────────────────────────────────┘\n");
-        console.log(contextMessage || "  No context loaded.");
-        console.log("");
-        continue;
-      }
+        case "api-key": {
+          const { key } = await inquirer.prompt([
+            {
+              type: "password",
+              name: "key",
+              message: "Enter new API Key:",
+              mask: "*",
+            },
+          ]);
+          setApiKey(key.trim());
+          apiKey = key.trim();
+          modelProvider.initialize(key.trim(), modelConfig.modelId);
+          cachedModels = []; // Clear model cache
+          log.success("API Key updated.");
+          break;
+        }
 
-      if (action === "7. Clear History") {
-        chatHandler.clearHistory();
-        log.success("Chat history cleared.");
-        continue;
+        case "exit": {
+          process.exit(0);
+        }
       }
-
-      if (action === "8. API Key") {
-        const { key } = await inquirer.prompt([
-          {
-            type: "password",
-            name: "key",
-            message: "Enter new API Key:",
-            mask: "*",
-          },
-        ]);
-        setApiKey(key.trim());
-        apiKey = key.trim();
-        modelProvider.initialize(key.trim(), modelConfig.modelId);
-        cachedModels = []; // Clear model cache
-        log.success("API Key updated.");
-        continue;
-      }
-
-      if (action === "9. Exit") process.exit(0);
-      continue;
-    }
-
-    // Handle direct slash commands
-    if (userInput.startsWith("/")) {
-      const cmd = userInput.trim().toLowerCase();
-      if (cmd === "/exit" || cmd === "/quit") process.exit(0);
-      if (cmd === "/clear") {
-        chatHandler.clearHistory();
-        log.success("History cleared.");
-        continue;
-      }
-      if (cmd === "/context") {
-        log.info(contextMessage || "No context.");
-        continue;
-      }
-      if (cmd === "/tools") {
-        console.log("\n📦 Available Tools:\n");
-        console.log(toolRegistry.getToolDescriptions());
-        console.log("");
-        continue;
-      }
-      if (cmd === "/todos") {
-        const session = getSessionData();
-        showTodoList(session.todos);
-        continue;
-      }
-      log.warning(`Unknown command: ${cmd}. Type "/" for menu.`);
       continue;
     }
 

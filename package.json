@@ -49,6 +49,8 @@
     "LICENSE"
   ],
   "dependencies": {
+    "@inquirer/search": "^4.1.0",
+    "@inquirer/select": "^5.0.4",
     "@langchain/core": "^1.1.11",
     "@langchain/groq": "^1.0.2",
     "@langchain/openai": "^1.2.2",
