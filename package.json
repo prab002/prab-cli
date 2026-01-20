@@ -15,8 +15,21 @@
     "log": "ts-node src/log-viewer.ts",
     "log:list": "ts-node src/log-viewer.ts list",
     "log:help": "ts-node src/log-viewer.ts help",
-    "prepublishOnly": "npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write src/**/*.ts",
+    "format:check": "prettier --check src/**/*.ts",
+    "typecheck": "tsc --noEmit",
+    "validate": "npm run lint && npm run typecheck && npm run build",
+    "prepublishOnly": "npm run validate",
+    "test": "npm run validate",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   },
   "keywords": [
     "cli",
@@ -66,11 +79,20 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/diff": "^7.0.2",
     "@types/glob": "^8.1.0",
     "@types/inquirer": "^9.0.9",
     "@types/node": "^25.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.53.1",
+    "@typescript-eslint/parser": "^8.53.1",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "nodemon": "^3.1.11",
+    "prettier": "^3.8.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

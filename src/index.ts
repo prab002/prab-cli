@@ -56,8 +56,9 @@ import {
 } from "./lib/groq-models";
 
 // Import chat handler and safety
-import { ChatHandler } from "./lib/chat-handler";
+import { ChatHandler, ProcessResult } from "./lib/chat-handler";
 import { SafetyChecker } from "./lib/safety";
+import chalk from "chalk";
 import { tracker } from "./lib/tracker";
 
 // Cache for available models
@@ -190,10 +191,7 @@ program.action(async () => {
 
   // Initialize model provider
   const modelConfig = getModelConfig();
-  const modelProvider = new GroqProvider(
-    modelConfig.modelId,
-    modelConfig.temperature
-  );
+  const modelProvider = new GroqProvider(modelConfig.modelId, modelConfig.temperature);
   try {
     modelProvider.initialize(apiKey, modelConfig.modelId);
     tracker.modelInit(modelConfig.modelId, "groq", true);
@@ -215,21 +213,14 @@ program.action(async () => {
   if (isRepo) {
     spinner.text = "Git repository detected. Gathering file structure...";
     const files = await getFileTree();
-    contextMessage = `\n\nCurrent Working Directory Context:\nFile List:\n${files.join(
-      "\n"
-    )}`;
+    contextMessage = `\n\nCurrent Working Directory Context:\nFile List:\n${files.join("\n")}`;
     spinner.succeed(`Context loaded (${files.length} files detected).`);
   } else {
     spinner.succeed("No Git repository detected. Running in standalone mode.");
   }
 
   // Initialize chat handler
-  const chatHandler = new ChatHandler(
-    toolRegistry,
-    toolExecutor,
-    modelProvider,
-    contextMessage
-  );
+  const chatHandler = new ChatHandler(toolRegistry, toolExecutor, modelProvider, contextMessage);
 
   log.info('Type "/" for commands (searchable), or start chatting!');
 
@@ -414,7 +405,101 @@ program.action(async () => {
     }
 
     // Process user input with chat handler
-    await chatHandler.processUserInput(userInput);
+    const result = await chatHandler.processUserInput(userInput);
+
+    // Handle model errors - offer to switch models
+    if (!result.success && result.isModelError) {
+      console.log("");
+      console.log(chalk.yellow("┌─────────────────────────────────────────────────────┐"));
+      console.log(
+        chalk.yellow("│") +
+          chalk.red.bold("  Model Error Detected                               ") +
+          chalk.yellow("│")
+      );
+      console.log(chalk.yellow("└─────────────────────────────────────────────────────┘"));
+
+      const errorMessages: Record<string, string> = {
+        rate_limit: "Rate limit exceeded. The model is receiving too many requests.",
+        model_unavailable: "Model is currently unavailable or overloaded.",
+        auth_error: "Authentication error. Please check your API key.",
+        unknown: "An error occurred with the current model.",
+      };
+
+      console.log(chalk.dim(`  ${errorMessages[result.errorType || "unknown"]}`));
+      console.log("");
+      console.log(chalk.cyan("  Would you like to switch to a different model?"));
+      console.log("");
+
+      // Fetch models if not cached
+      if (cachedModels.length === 0) {
+        const spinner = ora("Fetching available models...").start();
+        cachedModels = await fetchGroqModels(apiKey);
+        spinner.succeed(`Found ${cachedModels.length} models`);
+      }
+
+      // Filter out the current model and build choices
+      const currentModel = modelProvider.modelId;
+      const availableModels = cachedModels.filter((m) => m.id !== currentModel);
+      const grouped = groupModelsByOwner(availableModels);
+      const modelChoices: Array<{ name: string; value: string } | Separator> = [];
+
+      // Add "Cancel" option first
+      modelChoices.push({
+        name: chalk.dim("  Cancel (keep current model)"),
+        value: "__cancel__",
+      });
+      modelChoices.push(new Separator("─── Available Models ───"));
+
+      for (const [owner, models] of grouped) {
+        modelChoices.push(new Separator(`─── ${owner} ───`));
+        for (const model of models) {
+          const ctx = formatContextWindow(model.context_window);
+          modelChoices.push({
+            name: `  ${model.id} (${ctx} ctx)`,
+            value: model.id,
+          });
+        }
+      }
+
+      try {
+        const selectedModel = await select({
+          message: "Select a model to switch to:",
+          choices: modelChoices,
+          pageSize: 12,
+          loop: false,
+        });
+
+        if (selectedModel && selectedModel !== "__cancel__") {
+          const oldModel = currentModel;
+          setActiveModel(selectedModel);
+          modelProvider.setModel(selectedModel);
+          chatHandler.updateModelProvider(modelProvider);
+          log.success(`Switched to model: ${selectedModel}`);
+          tracker.modelSwitch(oldModel, selectedModel, true);
+
+          // Ask if user wants to retry the last message
+          console.log("");
+          const { retry } = await inquirer.prompt([
+            {
+              type: "confirm",
+              name: "retry",
+              message: "Retry your last message with the new model?",
+              default: true,
+            },
+          ]);
+
+          if (retry) {
+            console.log(chalk.dim("Retrying with new model..."));
+            await chatHandler.processUserInput(userInput);
+          }
+        } else {
+          log.info("Keeping current model. You can try again or switch models with /model");
+        }
+      } catch (e) {
+        // User cancelled with Ctrl+C
+        log.info("Model switch cancelled.");
+      }
+    }
   }
 });
 

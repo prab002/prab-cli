@@ -21,33 +21,147 @@ const syntaxColors = {
 // Common keywords for different languages
 const keywords = new Set([
     // JavaScript/TypeScript
-    'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'do',
-    'switch', 'case', 'break', 'continue', 'try', 'catch', 'finally', 'throw',
-    'class', 'extends', 'new', 'this', 'super', 'import', 'export', 'from', 'as',
-    'default', 'async', 'await', 'yield', 'typeof', 'instanceof', 'in', 'of',
-    'true', 'false', 'null', 'undefined', 'void', 'delete', 'static', 'get', 'set',
-    'interface', 'type', 'enum', 'implements', 'private', 'public', 'protected',
+    "const",
+    "let",
+    "var",
+    "function",
+    "return",
+    "if",
+    "else",
+    "for",
+    "while",
+    "do",
+    "switch",
+    "case",
+    "break",
+    "continue",
+    "try",
+    "catch",
+    "finally",
+    "throw",
+    "class",
+    "extends",
+    "new",
+    "this",
+    "super",
+    "import",
+    "export",
+    "from",
+    "as",
+    "default",
+    "async",
+    "await",
+    "yield",
+    "typeof",
+    "instanceof",
+    "in",
+    "of",
+    "true",
+    "false",
+    "null",
+    "undefined",
+    "void",
+    "delete",
+    "static",
+    "get",
+    "set",
+    "interface",
+    "type",
+    "enum",
+    "implements",
+    "private",
+    "public",
+    "protected",
     // Python
-    'def', 'class', 'import', 'from', 'as', 'if', 'elif', 'else', 'for', 'while',
-    'try', 'except', 'finally', 'raise', 'with', 'lambda', 'return', 'yield',
-    'True', 'False', 'None', 'and', 'or', 'not', 'is', 'in', 'pass', 'global',
-    'nonlocal', 'assert', 'break', 'continue', 'self', 'async', 'await',
+    "def",
+    "class",
+    "import",
+    "from",
+    "as",
+    "if",
+    "elif",
+    "else",
+    "for",
+    "while",
+    "try",
+    "except",
+    "finally",
+    "raise",
+    "with",
+    "lambda",
+    "return",
+    "yield",
+    "True",
+    "False",
+    "None",
+    "and",
+    "or",
+    "not",
+    "is",
+    "in",
+    "pass",
+    "global",
+    "nonlocal",
+    "assert",
+    "break",
+    "continue",
+    "self",
+    "async",
+    "await",
     // Go
-    'func', 'package', 'import', 'type', 'struct', 'interface', 'map', 'chan',
-    'go', 'defer', 'select', 'range', 'make', 'append', 'len', 'cap', 'nil',
+    "func",
+    "package",
+    "import",
+    "type",
+    "struct",
+    "interface",
+    "map",
+    "chan",
+    "go",
+    "defer",
+    "select",
+    "range",
+    "make",
+    "append",
+    "len",
+    "cap",
+    "nil",
     // Rust
-    'fn', 'let', 'mut', 'pub', 'mod', 'use', 'struct', 'enum', 'impl', 'trait',
-    'match', 'loop', 'move', 'ref', 'self', 'Self', 'where', 'unsafe', 'async',
+    "fn",
+    "let",
+    "mut",
+    "pub",
+    "mod",
+    "use",
+    "struct",
+    "enum",
+    "impl",
+    "trait",
+    "match",
+    "loop",
+    "move",
+    "ref",
+    "self",
+    "Self",
+    "where",
+    "unsafe",
+    "async",
     // Common
-    'print', 'println', 'printf', 'console', 'log', 'error', 'warn',
+    "print",
+    "println",
+    "printf",
+    "console",
+    "log",
+    "error",
+    "warn",
 ]);
 /**
  * Truncate output for brief display
  */
 const truncateOutput = (text, maxLen) => {
-    const firstLine = text.split('\n')[0];
+    const firstLine = text.split("\n")[0];
     if (firstLine.length > maxLen) {
-        return firstLine.substring(0, maxLen) + '...';
+        return firstLine.substring(0, maxLen) + "...";
     }
     return firstLine;
 };
@@ -55,97 +169,102 @@ const truncateOutput = (text, maxLen) => {
  * Format diff output with colors
  */
 const formatDiffOutput = (output) => {
-    const lines = output.split('\n');
-    return lines.map(line => {
+    const lines = output.split("\n");
+    return lines
+        .map((line) => {
         // File headers
-        if (line.startsWith('diff --git')) {
+        if (line.startsWith("diff --git")) {
             return chalk_1.default.bold.white(line);
         }
-        if (line.startsWith('index ')) {
+        if (line.startsWith("index ")) {
             return chalk_1.default.gray(line);
         }
-        if (line.startsWith('---')) {
+        if (line.startsWith("---")) {
             return chalk_1.default.red.bold(line);
         }
-        if (line.startsWith('+++')) {
+        if (line.startsWith("+++")) {
             return chalk_1.default.green.bold(line);
         }
         // Hunk headers
-        if (line.startsWith('@@')) {
+        if (line.startsWith("@@")) {
             return chalk_1.default.cyan(line);
         }
         // Added lines
-        if (line.startsWith('+')) {
+        if (line.startsWith("+")) {
             return chalk_1.default.green(line);
         }
         // Removed lines
-        if (line.startsWith('-')) {
+        if (line.startsWith("-")) {
             return chalk_1.default.red(line);
         }
         // Context lines
         return chalk_1.default.gray(line);
-    }).join('\n');
+    })
+        .join("\n");
 };
 /**
  * Format git log output with colors
  */
 const formatGitLogOutput = (output) => {
-    const lines = output.split('\n');
-    return lines.map(line => {
+    const lines = output.split("\n");
+    return lines
+        .map((line) => {
         // Commit hash
         if (line.match(/^[a-f0-9]{7,40}\s/)) {
-            const parts = line.split(' ');
+            const parts = line.split(" ");
             const hash = parts[0];
-            const rest = parts.slice(1).join(' ');
-            return chalk_1.default.yellow(hash) + ' ' + rest;
+            const rest = parts.slice(1).join(" ");
+            return chalk_1.default.yellow(hash) + " " + rest;
         }
         // Date lines
         if (line.match(/^\d{4}-\d{2}-\d{2}/)) {
             return chalk_1.default.blue(line);
         }
         // Author
-        if (line.toLowerCase().includes('author:')) {
+        if (line.toLowerCase().includes("author:")) {
             return chalk_1.default.cyan(line);
         }
         // Commit message (indented)
-        if (line.startsWith('  ')) {
+        if (line.startsWith("  ")) {
             return chalk_1.default.white(line);
         }
         return line;
-    }).join('\n');
+    })
+        .join("\n");
 };
 /**
  * Format git status output with colors
  */
 const formatGitStatusOutput = (output) => {
-    const lines = output.split('\n');
-    return lines.map(line => {
+    const lines = output.split("\n");
+    return lines
+        .map((line) => {
         // Branch info
-        if (line.startsWith('On branch') || line.startsWith('HEAD detached')) {
+        if (line.startsWith("On branch") || line.startsWith("HEAD detached")) {
             return chalk_1.default.cyan.bold(line);
         }
         // Modified files
-        if (line.includes('modified:')) {
+        if (line.includes("modified:")) {
             return chalk_1.default.yellow(line);
         }
         // New files
-        if (line.includes('new file:')) {
+        if (line.includes("new file:")) {
             return chalk_1.default.green(line);
         }
         // Deleted files
-        if (line.includes('deleted:')) {
+        if (line.includes("deleted:")) {
             return chalk_1.default.red(line);
         }
         // Untracked files header
-        if (line.includes('Untracked files:')) {
+        if (line.includes("Untracked files:")) {
             return chalk_1.default.magenta.bold(line);
         }
         // Staged changes header
-        if (line.includes('Changes to be committed:')) {
+        if (line.includes("Changes to be committed:")) {
             return chalk_1.default.green.bold(line);
         }
         // Unstaged changes header
-        if (line.includes('Changes not staged')) {
+        if (line.includes("Changes not staged")) {
             return chalk_1.default.yellow.bold(line);
         }
         // File status indicators (M, A, D, ??)
@@ -155,19 +274,20 @@ const formatGitStatusOutput = (output) => {
                 const indicator = status[1];
                 const filename = status[2];
                 let color = chalk_1.default.white;
-                if (indicator.includes('M'))
+                if (indicator.includes("M"))
                     color = chalk_1.default.yellow;
-                if (indicator.includes('A'))
+                if (indicator.includes("A"))
                     color = chalk_1.default.green;
-                if (indicator.includes('D'))
+                if (indicator.includes("D"))
                     color = chalk_1.default.red;
-                if (indicator.includes('?'))
+                if (indicator.includes("?"))
                     color = chalk_1.default.gray;
                 return color(`  ${indicator} ${filename}`);
             }
         }
         return chalk_1.default.gray(line);
-    }).join('\n');
+    })
+        .join("\n");
 };
 /**
  * Apply syntax highlighting to a line of code
@@ -200,21 +320,24 @@ const highlightCodeLine = (line) => {
 /**
  * Format file content with line numbers and syntax highlighting
  */
-const formatFileContent = (content, filename) => {
-    const lines = content.split('\n');
+const formatFileContent = (content, _filename) => {
+    const lines = content.split("\n");
     const lineNumWidth = String(lines.length).length;
-    return lines.map((line, idx) => {
-        const lineNum = String(idx + 1).padStart(lineNumWidth, ' ');
+    return lines
+        .map((line, idx) => {
+        const lineNum = String(idx + 1).padStart(lineNumWidth, " ");
         const highlighted = highlightCodeLine(line);
         return chalk_1.default.gray(`${lineNum} │ `) + highlighted;
-    }).join('\n');
+    })
+        .join("\n");
 };
 /**
  * Format bash command output
  */
 const formatBashOutput = (output) => {
     // Check if it looks like a diff
-    if (output.includes('diff --git') || output.includes('@@') && (output.includes('+') || output.includes('-'))) {
+    if (output.includes("diff --git") ||
+        (output.includes("@@") && (output.includes("+") || output.includes("-")))) {
         return formatDiffOutput(output);
     }
     // Check if it looks like git log
@@ -222,18 +345,21 @@ const formatBashOutput = (output) => {
         return formatGitLogOutput(output);
     }
     // Generic output with some highlighting
-    const lines = output.split('\n');
-    return lines.map(line => {
+    const lines = output.split("\n");
+    return lines
+        .map((line) => {
         // Error messages
-        if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
+        if (line.toLowerCase().includes("error") || line.toLowerCase().includes("failed")) {
             return chalk_1.default.red(line);
         }
         // Warning messages
-        if (line.toLowerCase().includes('warning') || line.toLowerCase().includes('warn')) {
+        if (line.toLowerCase().includes("warning") || line.toLowerCase().includes("warn")) {
             return chalk_1.default.yellow(line);
         }
         // Success messages
-        if (line.toLowerCase().includes('success') || line.toLowerCase().includes('done') || line.toLowerCase().includes('passed')) {
+        if (line.toLowerCase().includes("success") ||
+            line.toLowerCase().includes("done") ||
+            line.toLowerCase().includes("passed")) {
             return chalk_1.default.green(line);
         }
         // Paths
@@ -241,53 +367,56 @@ const formatBashOutput = (output) => {
             return chalk_1.default.cyan(line);
         }
         return line;
-    }).join('\n');
+    })
+        .join("\n");
 };
 /**
  * Format tool output based on tool type
  */
 const formatToolOutput = (toolName, output) => {
-    if (!output || output.trim() === '') {
-        return chalk_1.default.gray('  (no output)');
+    if (!output || output.trim() === "") {
+        return chalk_1.default.gray("  (no output)");
     }
-    const separator = chalk_1.default.gray('─'.repeat(60));
     let formatted;
     switch (toolName.toLowerCase()) {
-        case 'git_diff':
-        case 'gitdiff':
+        case "git_diff":
+        case "gitdiff":
             formatted = formatDiffOutput(output);
             break;
-        case 'git_log':
-        case 'gitlog':
+        case "git_log":
+        case "gitlog":
             formatted = formatGitLogOutput(output);
             break;
-        case 'git_status':
-        case 'gitstatus':
+        case "git_status":
+        case "gitstatus":
             formatted = formatGitStatusOutput(output);
             break;
-        case 'read_file':
-        case 'readfile':
+        case "read_file":
+        case "readfile":
             formatted = formatFileContent(output);
             break;
-        case 'bash':
-        case 'shell':
+        case "bash":
+        case "shell":
             formatted = formatBashOutput(output);
             break;
-        case 'glob':
-        case 'grep':
+        case "glob":
+        case "grep":
             // File lists - highlight paths
-            formatted = output.split('\n').map(line => {
-                if (line.includes(':')) {
-                    const [path, ...rest] = line.split(':');
-                    return chalk_1.default.cyan(path) + ':' + chalk_1.default.white(rest.join(':'));
+            formatted = output
+                .split("\n")
+                .map((line) => {
+                if (line.includes(":")) {
+                    const [path, ...rest] = line.split(":");
+                    return chalk_1.default.cyan(path) + ":" + chalk_1.default.white(rest.join(":"));
                 }
                 return chalk_1.default.cyan(line);
-            }).join('\n');
+            })
+                .join("\n");
             break;
         default:
             formatted = output;
     }
-    return `\n${chalk_1.default.gray('Output:')}\n${formatted}`;
+    return `\n${chalk_1.default.gray("Output:")}\n${formatted}`;
 };
 exports.log = {
     info: (msg) => console.log(chalk_1.default.blue("ℹ"), msg),
@@ -339,11 +468,7 @@ const showDiff = (before, after, filename) => {
     }
     const diff = (0, diff_1.diffLines)(before, after);
     diff.forEach((part) => {
-        const color = part.added
-            ? chalk_1.default.green
-            : part.removed
-                ? chalk_1.default.red
-                : chalk_1.default.gray;
+        const color = part.added ? chalk_1.default.green : part.removed ? chalk_1.default.red : chalk_1.default.gray;
         const prefix = part.added ? "+ " : part.removed ? "- " : "  ";
         const lines = part.value.split("\n");
         lines.forEach((line) => {
@@ -364,7 +489,7 @@ const showTodoList = (todos) => {
         return;
     }
     console.log(chalk_1.default.bold("\n📋 Todo List:"));
-    todos.forEach((todo, index) => {
+    todos.forEach((todo, _index) => {
         const status = todo.status === "completed"
             ? chalk_1.default.green("✓")
             : todo.status === "in_progress"
@@ -386,11 +511,7 @@ exports.showTodoList = showTodoList;
  */
 const showToolProgress = (toolName, status) => {
     const icon = status === "started" ? "⏳" : status === "completed" ? "✓" : "✗";
-    const color = status === "started"
-        ? chalk_1.default.yellow
-        : status === "completed"
-            ? chalk_1.default.green
-            : chalk_1.default.red;
+    const color = status === "started" ? chalk_1.default.yellow : status === "completed" ? chalk_1.default.green : chalk_1.default.red;
     console.log(color(`${icon} ${toolName} ${status}`));
 };
 exports.showToolProgress = showToolProgress;
@@ -402,19 +523,16 @@ const formatCodeBlock = (code, language) => {
     const maxLineLen = Math.max(...lines.map((l) => l.length), 40);
     const boxWidth = Math.min(maxLineLen + 4, 80);
     const langLabel = language ? chalk_1.default.cyan.bold(` ${language} `) : "";
-    const topBorder = chalk_1.default.gray("╭") + langLabel + chalk_1.default.gray("─".repeat(Math.max(0, boxWidth - language.length - 3))) + chalk_1.default.gray("╮");
+    const topBorder = chalk_1.default.gray("╭") +
+        langLabel +
+        chalk_1.default.gray("─".repeat(Math.max(0, boxWidth - language.length - 3))) +
+        chalk_1.default.gray("╮");
     const bottomBorder = chalk_1.default.gray("╰" + "─".repeat(boxWidth - 1) + "╯");
     const formattedLines = lines.map((line) => {
         const highlighted = highlightCodeLine(line);
         return chalk_1.default.gray("│ ") + highlighted;
     });
-    return [
-        "",
-        topBorder,
-        ...formattedLines,
-        bottomBorder,
-        "",
-    ].join("\n");
+    return ["", topBorder, ...formattedLines, bottomBorder, ""].join("\n");
 };
 /**
  * Format markdown text with colors for terminal display

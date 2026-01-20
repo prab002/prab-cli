@@ -1,67 +1,67 @@
-import { z } from 'zod';
-import { BaseMessage } from '@langchain/core/messages';
+import { z } from "zod";
+import { BaseMessage } from "@langchain/core/messages";
 
 // Message Types
 export type Message = {
-    role: 'system' | 'user' | 'assistant' | 'tool';
-    content: string;
-    tool_call_id?: string;
-    name?: string;
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+  tool_call_id?: string;
+  name?: string;
 };
 
 // Tool Types
 export interface ToolResult {
-    success: boolean;
-    output: string;
-    error?: string;
-    metadata?: Record<string, any>;
+  success: boolean;
+  output: string;
+  error?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface ToolCall {
-    id: string;
-    name: string;
-    args: Record<string, any>;
+  id: string;
+  name: string;
+  args: Record<string, any>;
 }
 
 // Configuration Types
 export interface Config {
-    apiKeys: {
-        groq: string;
-    };
-    activeModel: string;
-    preferences: {
-        temperature: number;
-        autoConfirm: boolean;
-        safeMode: boolean;
-        maxTokens?: number;
-    };
-    session?: {
-        todos: TodoItem[];
-    };
+  apiKeys: {
+    groq: string;
+  };
+  activeModel: string;
+  preferences: {
+    temperature: number;
+    autoConfirm: boolean;
+    safeMode: boolean;
+    maxTokens?: number;
+  };
+  session?: {
+    todos: TodoItem[];
+  };
 }
 
 export interface TodoItem {
-    id: string;
-    content: string;
-    activeForm: string;
-    status: 'pending' | 'in_progress' | 'completed';
-    createdAt: number;
+  id: string;
+  content: string;
+  activeForm: string;
+  status: "pending" | "in_progress" | "completed";
+  createdAt: number;
 }
 
 // Model Types
 export interface ModelInfo {
-    id: string;
-    provider: 'groq';
-    capabilities: string[];
-    description: string;
+  id: string;
+  provider: "groq";
+  capabilities: string[];
+  description: string;
 }
 
 export interface ModelProvider {
-    name: string;
-    modelId: string;
-    initialize(apiKey: string, modelId: string): void;
-    streamChat(messages: BaseMessage[], tools?: any[]): AsyncGenerator<any, void, unknown>;
-    supportsFunctionCalling: boolean;
+  name: string;
+  modelId: string;
+  initialize(apiKey: string, modelId: string): void;
+  streamChat(messages: BaseMessage[], tools?: any[]): AsyncGenerator<any, void, unknown>;
+  supportsFunctionCalling: boolean;
 }
 
 // Tool Schema Types (for Zod validation)

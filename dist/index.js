@@ -60,6 +60,7 @@ const groq_models_1 = require("./lib/groq-models");
 // Import chat handler and safety
 const chat_handler_1 = require("./lib/chat-handler");
 const safety_1 = require("./lib/safety");
+const chalk_1 = __importDefault(require("chalk"));
 const tracker_1 = require("./lib/tracker");
 // Cache for available models
 let cachedModels = [];
@@ -370,7 +371,88 @@ program.action(async () => {
             continue;
         }
         // Process user input with chat handler
-        await chatHandler.processUserInput(userInput);
+        const result = await chatHandler.processUserInput(userInput);
+        // Handle model errors - offer to switch models
+        if (!result.success && result.isModelError) {
+            console.log("");
+            console.log(chalk_1.default.yellow("┌─────────────────────────────────────────────────────┐"));
+            console.log(chalk_1.default.yellow("│") + chalk_1.default.red.bold("  Model Error Detected                               ") + chalk_1.default.yellow("│"));
+            console.log(chalk_1.default.yellow("└─────────────────────────────────────────────────────┘"));
+            const errorMessages = {
+                rate_limit: "Rate limit exceeded. The model is receiving too many requests.",
+                model_unavailable: "Model is currently unavailable or overloaded.",
+                auth_error: "Authentication error. Please check your API key.",
+                unknown: "An error occurred with the current model.",
+            };
+            console.log(chalk_1.default.dim(`  ${errorMessages[result.errorType || "unknown"]}`));
+            console.log("");
+            console.log(chalk_1.default.cyan("  Would you like to switch to a different model?"));
+            console.log("");
+            // Fetch models if not cached
+            if (cachedModels.length === 0) {
+                const spinner = (0, ora_1.default)("Fetching available models...").start();
+                cachedModels = await (0, groq_models_1.fetchGroqModels)(apiKey);
+                spinner.succeed(`Found ${cachedModels.length} models`);
+            }
+            // Filter out the current model and build choices
+            const currentModel = modelProvider.modelId;
+            const availableModels = cachedModels.filter((m) => m.id !== currentModel);
+            const grouped = (0, groq_models_1.groupModelsByOwner)(availableModels);
+            const modelChoices = [];
+            // Add "Cancel" option first
+            modelChoices.push({
+                name: chalk_1.default.dim("  Cancel (keep current model)"),
+                value: "__cancel__",
+            });
+            modelChoices.push(new select_1.Separator("─── Available Models ───"));
+            for (const [owner, models] of grouped) {
+                modelChoices.push(new select_1.Separator(`─── ${owner} ───`));
+                for (const model of models) {
+                    const ctx = (0, groq_models_1.formatContextWindow)(model.context_window);
+                    modelChoices.push({
+                        name: `  ${model.id} (${ctx} ctx)`,
+                        value: model.id,
+                    });
+                }
+            }
+            try {
+                const selectedModel = await (0, select_1.default)({
+                    message: "Select a model to switch to:",
+                    choices: modelChoices,
+                    pageSize: 12,
+                    loop: false,
+                });
+                if (selectedModel && selectedModel !== "__cancel__") {
+                    const oldModel = currentModel;
+                    (0, config_1.setActiveModel)(selectedModel);
+                    modelProvider.setModel(selectedModel);
+                    chatHandler.updateModelProvider(modelProvider);
+                    ui_1.log.success(`Switched to model: ${selectedModel}`);
+                    tracker_1.tracker.modelSwitch(oldModel, selectedModel, true);
+                    // Ask if user wants to retry the last message
+                    console.log("");
+                    const { retry } = await inquirer_1.default.prompt([
+                        {
+                            type: "confirm",
+                            name: "retry",
+                            message: "Retry your last message with the new model?",
+                            default: true,
+                        },
+                    ]);
+                    if (retry) {
+                        console.log(chalk_1.default.dim("Retrying with new model..."));
+                        await chatHandler.processUserInput(userInput);
+                    }
+                }
+                else {
+                    ui_1.log.info("Keeping current model. You can try again or switch models with /model");
+                }
+            }
+            catch (e) {
+                // User cancelled with Ctrl+C
+                ui_1.log.info("Model switch cancelled.");
+            }
+        }
     }
 });
 program.parse(process.argv);

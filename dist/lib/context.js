@@ -12,33 +12,28 @@ const isGitRepo = async () => {
     try {
         return await git.checkIsRepo();
     }
-    catch (e) {
+    catch {
         return false;
     }
 };
 exports.isGitRepo = isGitRepo;
 const getFileTree = async (cwd = process.cwd()) => {
     // Ignore node_modules, .git, dist, etc.
-    const ignore = ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/.env', '**/*.lock'];
-    const files = await (0, glob_1.glob)('**/*', { cwd, ignore, nodir: true });
+    const ignore = ["**/node_modules/**", "**/.git/**", "**/dist/**", "**/.env", "**/*.lock"];
+    const files = await (0, glob_1.glob)("**/*", { cwd, ignore, nodir: true });
     return files;
 };
 exports.getFileTree = getFileTree;
 const getFileContent = (filePath) => {
     try {
-        return fs_1.default.readFileSync(filePath, 'utf-8');
+        return fs_1.default.readFileSync(filePath, "utf-8");
     }
-    catch (e) {
-        return '';
+    catch {
+        return "";
     }
 };
 exports.getFileContent = getFileContent;
 const writeFile = (filePath, content) => {
-    try {
-        fs_1.default.writeFileSync(filePath, content, 'utf-8');
-    }
-    catch (e) {
-        throw e;
-    }
+    fs_1.default.writeFileSync(filePath, content, "utf-8");
 };
 exports.writeFile = writeFile;

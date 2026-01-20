@@ -1,0 +1,10 @@
+echo "Running pre-commit checks..."
+
+# Run lint-staged
+npx lint-staged
+
+# Run TypeScript type checking
+echo "Checking TypeScript types..."
+npx tsc --noEmit
+
+echo "Pre-commit checks passed!"

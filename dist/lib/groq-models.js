@@ -16,12 +16,12 @@ async function fetchGroqModels(apiKey) {
         const response = await groq.models.list();
         // Filter and sort models
         const models = response.data
-            .filter(m => m.active !== false)
+            .filter((m) => m.active !== false)
             .sort((a, b) => a.id.localeCompare(b.id));
         return models;
     }
     catch (error) {
-        console.error('Failed to fetch models:', error.message);
+        console.error("Failed to fetch models:", error.message);
         return [];
     }
 }
@@ -31,7 +31,7 @@ async function fetchGroqModels(apiKey) {
 function groupModelsByOwner(models) {
     const groups = new Map();
     for (const model of models) {
-        const owner = model.owned_by || 'Other';
+        const owner = model.owned_by || "Other";
         if (!groups.has(owner)) {
             groups.set(owner, []);
         }
