@@ -1,6 +1,68 @@
 import chalk from "chalk";
-import { TodoItem } from "../types";
+import { TodoItem, Customization } from "../types";
 import { diffLines } from "diff";
+
+// Simple ASCII art letters for custom banners
+const ASCII_LETTERS: Record<string, string[]> = {
+  A: ["  █  ", " █ █ ", "█████", "█   █", "█   █"],
+  B: ["████ ", "█   █", "████ ", "█   █", "████ "],
+  C: [" ████", "█    ", "█    ", "█    ", " ████"],
+  D: ["████ ", "█   █", "█   █", "█   █", "████ "],
+  E: ["█████", "█    ", "████ ", "█    ", "█████"],
+  F: ["█████", "█    ", "████ ", "█    ", "█    "],
+  G: [" ████", "█    ", "█  ██", "█   █", " ████"],
+  H: ["█   █", "█   █", "█████", "█   █", "█   █"],
+  I: ["█████", "  █  ", "  █  ", "  █  ", "█████"],
+  J: ["█████", "   █ ", "   █ ", "█  █ ", " ██  "],
+  K: ["█   █", "█  █ ", "███  ", "█  █ ", "█   █"],
+  L: ["█    ", "█    ", "█    ", "█    ", "█████"],
+  M: ["█   █", "██ ██", "█ █ █", "█   █", "█   █"],
+  N: ["█   █", "██  █", "█ █ █", "█  ██", "█   █"],
+  O: [" ███ ", "█   █", "█   █", "█   █", " ███ "],
+  P: ["████ ", "█   █", "████ ", "█    ", "█    "],
+  Q: [" ███ ", "█   █", "█ █ █", "█  █ ", " ██ █"],
+  R: ["████ ", "█   █", "████ ", "█  █ ", "█   █"],
+  S: [" ████", "█    ", " ███ ", "    █", "████ "],
+  T: ["█████", "  █  ", "  █  ", "  █  ", "  █  "],
+  U: ["█   █", "█   █", "█   █", "█   █", " ███ "],
+  V: ["█   █", "█   █", "█   █", " █ █ ", "  █  "],
+  W: ["█   █", "█   █", "█ █ █", "██ ██", "█   █"],
+  X: ["█   █", " █ █ ", "  █  ", " █ █ ", "█   █"],
+  Y: ["█   █", " █ █ ", "  █  ", "  █  ", "  █  "],
+  Z: ["█████", "   █ ", "  █  ", " █   ", "█████"],
+  " ": ["     ", "     ", "     ", "     ", "     "],
+  "-": ["     ", "     ", "█████", "     ", "     "],
+  _: ["     ", "     ", "     ", "     ", "█████"],
+  ".": ["     ", "     ", "     ", "     ", "  █  "],
+  "!": ["  █  ", "  █  ", "  █  ", "     ", "  █  "],
+  "0": [" ███ ", "█   █", "█   █", "█   █", " ███ "],
+  "1": ["  █  ", " ██  ", "  █  ", "  █  ", " ███ "],
+  "2": [" ███ ", "█   █", "  ██ ", " █   ", "█████"],
+  "3": ["████ ", "    █", " ███ ", "    █", "████ "],
+  "4": ["█   █", "█   █", "█████", "    █", "    █"],
+  "5": ["█████", "█    ", "████ ", "    █", "████ "],
+  "6": [" ███ ", "█    ", "████ ", "█   █", " ███ "],
+  "7": ["█████", "    █", "   █ ", "  █  ", "  █  "],
+  "8": [" ███ ", "█   █", " ███ ", "█   █", " ███ "],
+  "9": [" ███ ", "█   █", " ████", "    █", " ███ "],
+};
+
+/**
+ * Generate ASCII art banner from text
+ */
+const generateAsciiBanner = (text: string): string => {
+  const upperText = text.toUpperCase();
+  const lines: string[] = ["", "", "", "", ""];
+
+  for (const char of upperText) {
+    const letterArt = ASCII_LETTERS[char] || ASCII_LETTERS[" "];
+    for (let i = 0; i < 5; i++) {
+      lines[i] += letterArt[i] + " ";
+    }
+  }
+
+  return lines.join("\n");
+};
 
 // Syntax highlighting color schemes for different languages
 const syntaxColors = {
@@ -466,17 +528,22 @@ export const log = {
   },
 };
 
-export const banner = (modelName?: string, toolCount?: number) => {
-  console.log(
-    chalk.bold.cyan(`
-   ____             __      ________    ____
-   / __ \\_________ _/ /_    / ____/ /   /  _/
-  / /_/ / ___/ __ \`/ __ \\  / /   / /    / /
- / ____/ /  / /_/ / /_/ / / /___/ /____/ /
-/_/   /_/   \\__,_/_.___/  \\____/_____/___/
-`)
-  );
+export const banner = (modelName?: string, toolCount?: number, customization?: Customization) => {
+  const cliName = customization?.cliName || "Prab CLI";
+  const userName = customization?.userName;
+  const theme = customization?.theme || "default";
 
+  // Choose color based on theme
+  const titleColor =
+    theme === "colorful" ? chalk.bold.magenta : theme === "minimal" ? chalk.white : chalk.bold.cyan;
+
+  // Generate ASCII art for the CLI name
+  const asciiBanner = generateAsciiBanner(cliName);
+  console.log(titleColor("\n" + asciiBanner));
+
+  if (userName) {
+    console.log(chalk.gray(`  Welcome, ${chalk.cyan(userName)}!`));
+  }
   if (modelName) {
     console.log(chalk.gray(`  Active Model: ${chalk.cyan(modelName)}`));
   }

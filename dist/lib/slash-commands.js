@@ -53,6 +53,12 @@ exports.SLASH_COMMANDS = [
         action: "api-key",
     },
     {
+        name: "/settings",
+        description: "Customize CLI name, theme, and preferences",
+        shortcut: "s",
+        action: "settings",
+    },
+    {
         name: "/exit",
         description: "Exit the application",
         shortcut: "q",

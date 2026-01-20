@@ -1,8 +1,10 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { Config, TodoItem } from "../types";
+import { Config, TodoItem, Customization } from "../types";
 import { getDefaultModel } from "./models/registry";
+
+const DEFAULT_CLI_NAME = "Prab CLI";
 
 const CONFIG_DIR = path.join(os.homedir(), ".config", "groq-cli-tool");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
@@ -49,6 +51,11 @@ export const getConfig = (): Config => {
       autoConfirm: config.preferences?.autoConfirm ?? false,
       safeMode: config.preferences?.safeMode ?? true,
       maxTokens: config.preferences?.maxTokens,
+    },
+    customization: {
+      cliName: config.customization?.cliName || DEFAULT_CLI_NAME,
+      userName: config.customization?.userName,
+      theme: config.customization?.theme || "default",
     },
     session: config.session || { todos: [] },
   };
@@ -151,5 +158,58 @@ export const setSessionData = (data: { todos: TodoItem[] }): void => {
 export const clearSessionData = (): void => {
   const config = readConfig();
   config.session = { todos: [] };
+  writeConfig(config);
+};
+
+/**
+ * Get customization settings
+ */
+export const getCustomization = (): Customization => {
+  const config = getConfig();
+  return config.customization!;
+};
+
+/**
+ * Set CLI name
+ */
+export const setCliName = (name: string): void => {
+  const config = readConfig();
+  if (!config.customization) {
+    config.customization = { cliName: DEFAULT_CLI_NAME };
+  }
+  config.customization.cliName = name;
+  writeConfig(config);
+};
+
+/**
+ * Set user name
+ */
+export const setUserName = (name: string): void => {
+  const config = readConfig();
+  if (!config.customization) {
+    config.customization = { cliName: DEFAULT_CLI_NAME };
+  }
+  config.customization.userName = name;
+  writeConfig(config);
+};
+
+/**
+ * Set theme
+ */
+export const setTheme = (theme: "default" | "minimal" | "colorful"): void => {
+  const config = readConfig();
+  if (!config.customization) {
+    config.customization = { cliName: DEFAULT_CLI_NAME };
+  }
+  config.customization.theme = theme;
+  writeConfig(config);
+};
+
+/**
+ * Reset customization to defaults
+ */
+export const resetCustomization = (): void => {
+  const config = readConfig();
+  config.customization = { cliName: DEFAULT_CLI_NAME, theme: "default" };
   writeConfig(config);
 };

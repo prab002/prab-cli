@@ -6,6 +6,64 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StreamFormatter = exports.formatMarkdown = exports.showToolProgress = exports.showTodoList = exports.showDiff = exports.banner = exports.log = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const diff_1 = require("diff");
+// Simple ASCII art letters for custom banners
+const ASCII_LETTERS = {
+    A: ["  █  ", " █ █ ", "█████", "█   █", "█   █"],
+    B: ["████ ", "█   █", "████ ", "█   █", "████ "],
+    C: [" ████", "█    ", "█    ", "█    ", " ████"],
+    D: ["████ ", "█   █", "█   █", "█   █", "████ "],
+    E: ["█████", "█    ", "████ ", "█    ", "█████"],
+    F: ["█████", "█    ", "████ ", "█    ", "█    "],
+    G: [" ████", "█    ", "█  ██", "█   █", " ████"],
+    H: ["█   █", "█   █", "█████", "█   █", "█   █"],
+    I: ["█████", "  █  ", "  █  ", "  █  ", "█████"],
+    J: ["█████", "   █ ", "   █ ", "█  █ ", " ██  "],
+    K: ["█   █", "█  █ ", "███  ", "█  █ ", "█   █"],
+    L: ["█    ", "█    ", "█    ", "█    ", "█████"],
+    M: ["█   █", "██ ██", "█ █ █", "█   █", "█   █"],
+    N: ["█   █", "██  █", "█ █ █", "█  ██", "█   █"],
+    O: [" ███ ", "█   █", "█   █", "█   █", " ███ "],
+    P: ["████ ", "█   █", "████ ", "█    ", "█    "],
+    Q: [" ███ ", "█   █", "█ █ █", "█  █ ", " ██ █"],
+    R: ["████ ", "█   █", "████ ", "█  █ ", "█   █"],
+    S: [" ████", "█    ", " ███ ", "    █", "████ "],
+    T: ["█████", "  █  ", "  █  ", "  █  ", "  █  "],
+    U: ["█   █", "█   █", "█   █", "█   █", " ███ "],
+    V: ["█   █", "█   █", "█   █", " █ █ ", "  █  "],
+    W: ["█   █", "█   █", "█ █ █", "██ ██", "█   █"],
+    X: ["█   █", " █ █ ", "  █  ", " █ █ ", "█   █"],
+    Y: ["█   █", " █ █ ", "  █  ", "  █  ", "  █  "],
+    Z: ["█████", "   █ ", "  █  ", " █   ", "█████"],
+    " ": ["     ", "     ", "     ", "     ", "     "],
+    "-": ["     ", "     ", "█████", "     ", "     "],
+    _: ["     ", "     ", "     ", "     ", "█████"],
+    ".": ["     ", "     ", "     ", "     ", "  █  "],
+    "!": ["  █  ", "  █  ", "  █  ", "     ", "  █  "],
+    "0": [" ███ ", "█   █", "█   █", "█   █", " ███ "],
+    "1": ["  █  ", " ██  ", "  █  ", "  █  ", " ███ "],
+    "2": [" ███ ", "█   █", "  ██ ", " █   ", "█████"],
+    "3": ["████ ", "    █", " ███ ", "    █", "████ "],
+    "4": ["█   █", "█   █", "█████", "    █", "    █"],
+    "5": ["█████", "█    ", "████ ", "    █", "████ "],
+    "6": [" ███ ", "█    ", "████ ", "█   █", " ███ "],
+    "7": ["█████", "    █", "   █ ", "  █  ", "  █  "],
+    "8": [" ███ ", "█   █", " ███ ", "█   █", " ███ "],
+    "9": [" ███ ", "█   █", " ████", "    █", " ███ "],
+};
+/**
+ * Generate ASCII art banner from text
+ */
+const generateAsciiBanner = (text) => {
+    const upperText = text.toUpperCase();
+    const lines = ["", "", "", "", ""];
+    for (const char of upperText) {
+        const letterArt = ASCII_LETTERS[char] || ASCII_LETTERS[" "];
+        for (let i = 0; i < 5; i++) {
+            lines[i] += letterArt[i] + " ";
+        }
+    }
+    return lines.join("\n");
+};
 // Syntax highlighting color schemes for different languages
 const syntaxColors = {
     keyword: chalk_1.default.magenta,
@@ -442,14 +500,18 @@ exports.log = {
         console.log(formatted);
     },
 };
-const banner = (modelName, toolCount) => {
-    console.log(chalk_1.default.bold.cyan(`
-   ____             __      ________    ____
-   / __ \\_________ _/ /_    / ____/ /   /  _/
-  / /_/ / ___/ __ \`/ __ \\  / /   / /    / /
- / ____/ /  / /_/ / /_/ / / /___/ /____/ /
-/_/   /_/   \\__,_/_.___/  \\____/_____/___/
-`));
+const banner = (modelName, toolCount, customization) => {
+    const cliName = customization?.cliName || "Prab CLI";
+    const userName = customization?.userName;
+    const theme = customization?.theme || "default";
+    // Choose color based on theme
+    const titleColor = theme === "colorful" ? chalk_1.default.bold.magenta : theme === "minimal" ? chalk_1.default.white : chalk_1.default.bold.cyan;
+    // Generate ASCII art for the CLI name
+    const asciiBanner = generateAsciiBanner(cliName);
+    console.log(titleColor("\n" + asciiBanner));
+    if (userName) {
+        console.log(chalk_1.default.gray(`  Welcome, ${chalk_1.default.cyan(userName)}!`));
+    }
     if (modelName) {
         console.log(chalk_1.default.gray(`  Active Model: ${chalk_1.default.cyan(modelName)}`));
     }

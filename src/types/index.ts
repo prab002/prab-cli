@@ -23,6 +23,13 @@ export interface ToolCall {
   args: Record<string, any>;
 }
 
+// Customization Types
+export interface Customization {
+  cliName: string;
+  userName?: string;
+  theme?: "default" | "minimal" | "colorful";
+}
+
 // Configuration Types
 export interface Config {
   apiKeys: {
@@ -35,6 +42,7 @@ export interface Config {
     safeMode: boolean;
     maxTokens?: number;
   };
+  customization?: Customization;
   session?: {
     todos: TodoItem[];
   };

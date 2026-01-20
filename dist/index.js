@@ -195,8 +195,9 @@ program.action(async () => {
         tracker_1.tracker.modelInit(modelConfig.modelId, "groq", false, e.message);
         process.exit(1);
     }
-    // Display banner
-    (0, ui_1.banner)(modelConfig.modelId, toolRegistry.count());
+    // Display banner with customization
+    const customization = (0, config_1.getCustomization)();
+    (0, ui_1.banner)(modelConfig.modelId, toolRegistry.count(), customization);
     // Context Gathering
     const spinner = (0, ora_1.default)("Checking context...").start();
     const isRepo = await (0, context_1.isGitRepo)();
@@ -364,6 +365,81 @@ program.action(async () => {
                     ui_1.log.success("API Key updated.");
                     break;
                 }
+                case "settings": {
+                    console.log("\n┌─────────────────────────────────────┐");
+                    console.log("│         CUSTOMIZATION               │");
+                    console.log("└─────────────────────────────────────┘\n");
+                    const currentCustomization = (0, config_1.getCustomization)();
+                    console.log(chalk_1.default.gray(`  Current CLI Name: ${chalk_1.default.cyan(currentCustomization.cliName)}`));
+                    console.log(chalk_1.default.gray(`  Current User: ${chalk_1.default.cyan(currentCustomization.userName || "(not set)")}`));
+                    console.log(chalk_1.default.gray(`  Current Theme: ${chalk_1.default.cyan(currentCustomization.theme)}`));
+                    console.log("");
+                    try {
+                        const settingChoice = await (0, select_1.default)({
+                            message: "What would you like to customize?",
+                            choices: [
+                                { name: "Change CLI Name (banner text)", value: "cli-name" },
+                                { name: "Set Your Name (greeting)", value: "user-name" },
+                                {
+                                    name: "Change Theme (default, minimal, colorful)",
+                                    value: "theme",
+                                },
+                                { name: "Reset to Defaults", value: "reset" },
+                                { name: "Cancel", value: "cancel" },
+                            ],
+                        });
+                        if (settingChoice === "cli-name") {
+                            const { newName } = await inquirer_1.default.prompt([
+                                {
+                                    type: "input",
+                                    name: "newName",
+                                    message: "Enter new CLI name (e.g., 'My CLI', 'Dev Tool'):",
+                                    default: currentCustomization.cliName,
+                                },
+                            ]);
+                            if (newName && newName.trim()) {
+                                (0, config_1.setCliName)(newName.trim());
+                                ui_1.log.success(`CLI name changed to: ${newName.trim()}`);
+                                ui_1.log.info("Restart the CLI to see the new banner.");
+                            }
+                        }
+                        else if (settingChoice === "user-name") {
+                            const { newUserName } = await inquirer_1.default.prompt([
+                                {
+                                    type: "input",
+                                    name: "newUserName",
+                                    message: "Enter your name (for greeting):",
+                                    default: currentCustomization.userName || "",
+                                },
+                            ]);
+                            if (newUserName && newUserName.trim()) {
+                                (0, config_1.setUserName)(newUserName.trim());
+                                ui_1.log.success(`Welcome message will now greet: ${newUserName.trim()}`);
+                            }
+                        }
+                        else if (settingChoice === "theme") {
+                            const themeChoice = await (0, select_1.default)({
+                                message: "Select a theme:",
+                                choices: [
+                                    { name: "Default (Cyan)", value: "default" },
+                                    { name: "Minimal (White)", value: "minimal" },
+                                    { name: "Colorful (Magenta)", value: "colorful" },
+                                ],
+                            });
+                            (0, config_1.setTheme)(themeChoice);
+                            ui_1.log.success(`Theme changed to: ${themeChoice}`);
+                            ui_1.log.info("Restart the CLI to see the new theme.");
+                        }
+                        else if (settingChoice === "reset") {
+                            (0, config_1.resetCustomization)();
+                            ui_1.log.success("Customization reset to defaults.");
+                        }
+                    }
+                    catch {
+                        // User cancelled
+                    }
+                    break;
+                }
                 case "exit": {
                     process.exit(0);
                 }
@@ -376,7 +452,9 @@ program.action(async () => {
         if (!result.success && result.isModelError) {
             console.log("");
             console.log(chalk_1.default.yellow("┌─────────────────────────────────────────────────────┐"));
-            console.log(chalk_1.default.yellow("│") + chalk_1.default.red.bold("  Model Error Detected                               ") + chalk_1.default.yellow("│"));
+            console.log(chalk_1.default.yellow("│") +
+                chalk_1.default.red.bold("  Model Error Detected                               ") +
+                chalk_1.default.yellow("│"));
             console.log(chalk_1.default.yellow("└─────────────────────────────────────────────────────┘"));
             const errorMessages = {
                 rate_limit: "Rate limit exceeded. The model is receiving too many requests.",

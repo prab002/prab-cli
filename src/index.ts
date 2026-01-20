@@ -9,10 +9,16 @@ import {
   setActiveModel,
   getPreferences,
   clearSessionData,
+  getCustomization,
+  setCliName,
+  setUserName,
+  setTheme,
+  resetCustomization,
 } from "./lib/config";
 import { isGitRepo, getFileTree } from "./lib/context";
 import { log, banner, showTodoList } from "./lib/ui";
 import { getSessionData } from "./lib/config";
+import { Customization } from "./types";
 import { showSlashCommandMenu } from "./lib/slash-commands";
 import select, { Separator } from "@inquirer/select";
 import ora from "ora";
@@ -202,8 +208,9 @@ program.action(async () => {
     process.exit(1);
   }
 
-  // Display banner
-  banner(modelConfig.modelId, toolRegistry.count());
+  // Display banner with customization
+  const customization = getCustomization();
+  banner(modelConfig.modelId, toolRegistry.count(), customization);
 
   // Context Gathering
   const spinner = ora("Checking context...").start();
@@ -394,6 +401,87 @@ program.action(async () => {
           modelProvider.initialize(key.trim(), modelConfig.modelId);
           cachedModels = []; // Clear model cache
           log.success("API Key updated.");
+          break;
+        }
+
+        case "settings": {
+          console.log("\n┌─────────────────────────────────────┐");
+          console.log("│         CUSTOMIZATION               │");
+          console.log("└─────────────────────────────────────┘\n");
+
+          const currentCustomization = getCustomization();
+          console.log(
+            chalk.gray(`  Current CLI Name: ${chalk.cyan(currentCustomization.cliName)}`)
+          );
+          console.log(
+            chalk.gray(
+              `  Current User: ${chalk.cyan(currentCustomization.userName || "(not set)")}`
+            )
+          );
+          console.log(chalk.gray(`  Current Theme: ${chalk.cyan(currentCustomization.theme)}`));
+          console.log("");
+
+          try {
+            const settingChoice = await select({
+              message: "What would you like to customize?",
+              choices: [
+                { name: "Change CLI Name (banner text)", value: "cli-name" },
+                { name: "Set Your Name (greeting)", value: "user-name" },
+                {
+                  name: "Change Theme (default, minimal, colorful)",
+                  value: "theme",
+                },
+                { name: "Reset to Defaults", value: "reset" },
+                { name: "Cancel", value: "cancel" },
+              ],
+            });
+
+            if (settingChoice === "cli-name") {
+              const { newName } = await inquirer.prompt([
+                {
+                  type: "input",
+                  name: "newName",
+                  message: "Enter new CLI name (e.g., 'My CLI', 'Dev Tool'):",
+                  default: currentCustomization.cliName,
+                },
+              ]);
+              if (newName && newName.trim()) {
+                setCliName(newName.trim());
+                log.success(`CLI name changed to: ${newName.trim()}`);
+                log.info("Restart the CLI to see the new banner.");
+              }
+            } else if (settingChoice === "user-name") {
+              const { newUserName } = await inquirer.prompt([
+                {
+                  type: "input",
+                  name: "newUserName",
+                  message: "Enter your name (for greeting):",
+                  default: currentCustomization.userName || "",
+                },
+              ]);
+              if (newUserName && newUserName.trim()) {
+                setUserName(newUserName.trim());
+                log.success(`Welcome message will now greet: ${newUserName.trim()}`);
+              }
+            } else if (settingChoice === "theme") {
+              const themeChoice = await select({
+                message: "Select a theme:",
+                choices: [
+                  { name: "Default (Cyan)", value: "default" },
+                  { name: "Minimal (White)", value: "minimal" },
+                  { name: "Colorful (Magenta)", value: "colorful" },
+                ],
+              });
+              setTheme(themeChoice as "default" | "minimal" | "colorful");
+              log.success(`Theme changed to: ${themeChoice}`);
+              log.info("Restart the CLI to see the new theme.");
+            } else if (settingChoice === "reset") {
+              resetCustomization();
+              log.success("Customization reset to defaults.");
+            }
+          } catch {
+            // User cancelled
+          }
           break;
         }
 

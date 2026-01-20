@@ -3,11 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.clearSessionData = exports.setSessionData = exports.getSessionData = exports.setPreference = exports.getPreferences = exports.setActiveModel = exports.getModelConfig = exports.clearApiKey = exports.setApiKey = exports.getApiKey = exports.getConfig = void 0;
+exports.resetCustomization = exports.setTheme = exports.setUserName = exports.setCliName = exports.getCustomization = exports.clearSessionData = exports.setSessionData = exports.getSessionData = exports.setPreference = exports.getPreferences = exports.setActiveModel = exports.getModelConfig = exports.clearApiKey = exports.setApiKey = exports.getApiKey = exports.getConfig = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const os_1 = __importDefault(require("os"));
 const registry_1 = require("./models/registry");
+const DEFAULT_CLI_NAME = "Prab CLI";
 const CONFIG_DIR = path_1.default.join(os_1.default.homedir(), ".config", "groq-cli-tool");
 const CONFIG_FILE = path_1.default.join(CONFIG_DIR, "config.json");
 const ensureConfigDir = () => {
@@ -49,6 +50,11 @@ const getConfig = () => {
             autoConfirm: config.preferences?.autoConfirm ?? false,
             safeMode: config.preferences?.safeMode ?? true,
             maxTokens: config.preferences?.maxTokens,
+        },
+        customization: {
+            cliName: config.customization?.cliName || DEFAULT_CLI_NAME,
+            userName: config.customization?.userName,
+            theme: config.customization?.theme || "default",
         },
         session: config.session || { todos: [] },
     };
@@ -154,3 +160,56 @@ const clearSessionData = () => {
     writeConfig(config);
 };
 exports.clearSessionData = clearSessionData;
+/**
+ * Get customization settings
+ */
+const getCustomization = () => {
+    const config = (0, exports.getConfig)();
+    return config.customization;
+};
+exports.getCustomization = getCustomization;
+/**
+ * Set CLI name
+ */
+const setCliName = (name) => {
+    const config = readConfig();
+    if (!config.customization) {
+        config.customization = { cliName: DEFAULT_CLI_NAME };
+    }
+    config.customization.cliName = name;
+    writeConfig(config);
+};
+exports.setCliName = setCliName;
+/**
+ * Set user name
+ */
+const setUserName = (name) => {
+    const config = readConfig();
+    if (!config.customization) {
+        config.customization = { cliName: DEFAULT_CLI_NAME };
+    }
+    config.customization.userName = name;
+    writeConfig(config);
+};
+exports.setUserName = setUserName;
+/**
+ * Set theme
+ */
+const setTheme = (theme) => {
+    const config = readConfig();
+    if (!config.customization) {
+        config.customization = { cliName: DEFAULT_CLI_NAME };
+    }
+    config.customization.theme = theme;
+    writeConfig(config);
+};
+exports.setTheme = setTheme;
+/**
+ * Reset customization to defaults
+ */
+const resetCustomization = () => {
+    const config = readConfig();
+    config.customization = { cliName: DEFAULT_CLI_NAME, theme: "default" };
+    writeConfig(config);
+};
+exports.resetCustomization = resetCustomization;
