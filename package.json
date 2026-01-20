@@ -1,8 +1,10 @@
 {
-  "name": "cli-tool",
+  "name": "prab-cli",
   "version": "1.0.0",
+  "description": "AI-powered coding assistant for your terminal. Built with Groq's lightning-fast LLMs, featuring autonomous tool execution, syntax-highlighted output, and git integration.",
   "main": "dist/index.js",
   "bin": {
+    "prab-cli": "./dist/index.js",
     "groq-cli": "./dist/index.js"
   },
   "scripts": {
@@ -13,12 +15,39 @@
     "log": "ts-node src/log-viewer.ts",
     "log:list": "ts-node src/log-viewer.ts list",
     "log:help": "ts-node src/log-viewer.ts help",
+    "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "cli",
+    "ai",
+    "groq",
+    "llm",
+    "coding-assistant",
+    "terminal",
+    "developer-tools",
+    "git",
+    "code-generation",
+    "langchain"
+  ],
+  "author": "Prabhanjan Sharma",
   "license": "ISC",
-  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prabhanjansharma/prab-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/prabhanjansharma/prab-cli/issues"
+  },
+  "homepage": "https://github.com/prabhanjansharma/prab-cli#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@langchain/core": "^1.1.11",
     "@langchain/groq": "^1.0.2",
