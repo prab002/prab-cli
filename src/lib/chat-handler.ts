@@ -4,7 +4,7 @@ import { ToolExecutor } from './tools/executor';
 import { ModelProvider } from './models/provider';
 import { Message, ToolCall } from '../types';
 import { getFileTree, getFileContent } from './context';
-import { log } from './ui';
+import { log, StreamFormatter } from './ui';
 import { tracker } from './tracker';
 
 /**
@@ -105,6 +105,7 @@ When you need to perform file operations, use the appropriate tools rather than 
                 const stream = this.modelProvider.streamChat(this.messages, tools);
                 let fullResponse = '';
                 let toolCalls: any[] = [];
+                const formatter = new StreamFormatter();
 
                 process.stdout.write('\n');
 
@@ -112,14 +113,24 @@ When you need to perform file operations, use the appropriate tools rather than 
                     for await (const chunk of stream) {
                         // Handle text content
                         if (chunk.content && typeof chunk.content === 'string') {
-                            process.stdout.write(chunk.content);
                             fullResponse += chunk.content;
+                            // Format and output the chunk with syntax highlighting
+                            const formatted = formatter.processChunk(chunk.content);
+                            if (formatted) {
+                                process.stdout.write(formatted);
+                            }
                         }
 
                         // Handle tool calls
                         if (chunk.tool_calls && chunk.tool_calls.length > 0) {
                             toolCalls = chunk.tool_calls;
                         }
+                    }
+
+                    // Flush any remaining content in the formatter
+                    const remaining = formatter.flush();
+                    if (remaining) {
+                        process.stdout.write(remaining);
                     }
 
                     // Log API response

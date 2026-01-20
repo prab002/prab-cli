@@ -62,6 +62,10 @@ class ToolExecutor {
             if (result.success) {
                 spinner.succeed(`${tool.name} completed`);
                 ui_1.log.toolResult(true, result.output);
+                // Show formatted output with colors
+                if (result.output && result.output.trim()) {
+                    ui_1.log.toolOutput(tool.name, result.output);
+                }
                 tracker_1.tracker.toolSuccess(tool.name, result.output, duration);
             }
             else {
