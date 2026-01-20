@@ -34,12 +34,12 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/prabhanjansharma/prab-cli.git"
+    "url": "https://github.com/prab002/prab-cli.git"
   },
   "bugs": {
-    "url": "https://github.com/prabhanjansharma/prab-cli/issues"
+    "url": "https://github.com/prab002/prab-cli/issues"
   },
-  "homepage": "https://github.com/prabhanjansharma/prab-cli#readme",
+  "homepage": "https://github.com/prab002/prab-cli#readme",
   "engines": {
     "node": ">=18.0.0"
   },

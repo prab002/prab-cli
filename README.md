@@ -243,7 +243,7 @@ The AI will use `grep` to search for import statements.
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/prab-cli.git
+git clone https://github.com/prab002/prab-cli.git
 cd prab-cli
 
 # Install dependencies
