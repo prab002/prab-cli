@@ -53,6 +53,8 @@ const file_tools_1 = require("./lib/tools/file-tools");
 const shell_tools_1 = require("./lib/tools/shell-tools");
 const git_tools_1 = require("./lib/tools/git-tools");
 const todo_tool_1 = require("./lib/tools/todo-tool");
+// Import crypto signal system
+const crypto_1 = require("./lib/crypto");
 // Import model system
 const groq_provider_1 = require("./lib/models/groq-provider");
 const registry_1 = require("./lib/models/registry");
@@ -97,6 +99,36 @@ program
     .action(() => {
     (0, config_1.clearApiKey)();
     ui_1.log.success("API Key cleared!");
+});
+// Trading signal command
+program
+    .command("signal <crypto>")
+    .description("Get trading signal for a cryptocurrency (e.g., prab-cli signal btc)")
+    .option("-i, --interval <interval>", "Time interval (1m, 5m, 15m, 1h, 4h, 1d, 1w)", "1h")
+    .action(async (crypto, options) => {
+    const validIntervals = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
+    const interval = validIntervals.includes(options.interval)
+        ? options.interval
+        : "1h";
+    await (0, crypto_1.fullSignal)(crypto, interval);
+});
+// List supported cryptocurrencies
+program
+    .command("crypto-list")
+    .description("List supported cryptocurrency symbols")
+    .action(() => {
+    console.log("\nSupported Cryptocurrencies:\n");
+    const symbols = (0, crypto_1.getSupportedSymbols)();
+    const columns = 4;
+    for (let i = 0; i < symbols.length; i += columns) {
+        const row = symbols
+            .slice(i, i + columns)
+            .map((s) => s.padEnd(12))
+            .join("");
+        console.log("  " + row);
+    }
+    console.log("\nYou can also use any Binance trading pair (e.g., BTCUSDT, ETHBTC)");
+    console.log("");
 });
 // Model management commands
 program
@@ -239,6 +271,29 @@ program.action(async () => {
             }
             // Execute the selected command
             switch (action) {
+                case "signal": {
+                    // Prompt for crypto symbol
+                    const { cryptoSymbol } = await inquirer_1.default.prompt([
+                        {
+                            type: "input",
+                            name: "cryptoSymbol",
+                            message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+                            default: "btc",
+                        },
+                    ]);
+                    // Prompt for interval
+                    const intervalChoice = await (0, select_1.default)({
+                        message: "Select time interval:",
+                        choices: [
+                            { name: "1 Hour (recommended)", value: "1h" },
+                            { name: "15 Minutes", value: "15m" },
+                            { name: "4 Hours", value: "4h" },
+                            { name: "1 Day", value: "1d" },
+                        ],
+                    });
+                    await (0, crypto_1.fullSignal)(cryptoSymbol, intervalChoice);
+                    break;
+                }
                 case "model": {
                     // Fetch models from Groq API if not cached
                     if (cachedModels.length === 0) {
@@ -279,7 +334,7 @@ program.action(async () => {
                             ui_1.log.info(`Already using ${selectedModel}`);
                         }
                     }
-                    catch (e) {
+                    catch {
                         // User cancelled with Ctrl+C
                     }
                     break;
@@ -526,7 +581,7 @@ program.action(async () => {
                     ui_1.log.info("Keeping current model. You can try again or switch models with /model");
                 }
             }
-            catch (e) {
+            catch {
                 // User cancelled with Ctrl+C
                 ui_1.log.info("Model switch cancelled.");
             }

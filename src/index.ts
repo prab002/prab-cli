@@ -7,7 +7,6 @@ import {
   clearApiKey,
   getModelConfig,
   setActiveModel,
-  getPreferences,
   clearSessionData,
   getCustomization,
   setCliName,
@@ -18,7 +17,6 @@ import {
 import { isGitRepo, getFileTree } from "./lib/context";
 import { log, banner, showTodoList } from "./lib/ui";
 import { getSessionData } from "./lib/config";
-import { Customization } from "./types";
 import { showSlashCommandMenu } from "./lib/slash-commands";
 import select, { Separator } from "@inquirer/select";
 import ora from "ora";
@@ -45,15 +43,12 @@ import {
 } from "./lib/tools/git-tools";
 import { TodoTool } from "./lib/tools/todo-tool";
 
+// Import crypto signal system
+import { fullSignal, getSupportedSymbols, TimeInterval } from "./lib/crypto";
+
 // Import model system
 import { GroqProvider } from "./lib/models/groq-provider";
-import {
-  getModelList,
-  isValidModel,
-  validateModelId,
-  getAllModelIds,
-  getModelInfo,
-} from "./lib/models/registry";
+import { getModelList, validateModelId } from "./lib/models/registry";
 import {
   fetchGroqModels,
   groupModelsByOwner,
@@ -62,7 +57,7 @@ import {
 } from "./lib/groq-models";
 
 // Import chat handler and safety
-import { ChatHandler, ProcessResult } from "./lib/chat-handler";
+import { ChatHandler } from "./lib/chat-handler";
 import { SafetyChecker } from "./lib/safety";
 import chalk from "chalk";
 import { tracker } from "./lib/tracker";
@@ -106,6 +101,39 @@ program
   .action(() => {
     clearApiKey();
     log.success("API Key cleared!");
+  });
+
+// Trading signal command
+program
+  .command("signal <crypto>")
+  .description("Get trading signal for a cryptocurrency (e.g., prab-cli signal btc)")
+  .option("-i, --interval <interval>", "Time interval (1m, 5m, 15m, 1h, 4h, 1d, 1w)", "1h")
+  .action(async (crypto: string, options: { interval: string }) => {
+    const validIntervals = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
+    const interval = validIntervals.includes(options.interval)
+      ? (options.interval as TimeInterval)
+      : "1h";
+
+    await fullSignal(crypto, interval);
+  });
+
+// List supported cryptocurrencies
+program
+  .command("crypto-list")
+  .description("List supported cryptocurrency symbols")
+  .action(() => {
+    console.log("\nSupported Cryptocurrencies:\n");
+    const symbols = getSupportedSymbols();
+    const columns = 4;
+    for (let i = 0; i < symbols.length; i += columns) {
+      const row = symbols
+        .slice(i, i + columns)
+        .map((s) => s.padEnd(12))
+        .join("");
+      console.log("  " + row);
+    }
+    console.log("\nYou can also use any Binance trading pair (e.g., BTCUSDT, ETHBTC)");
+    console.log("");
   });
 
 // Model management commands
@@ -261,6 +289,32 @@ program.action(async () => {
 
       // Execute the selected command
       switch (action) {
+        case "signal": {
+          // Prompt for crypto symbol
+          const { cryptoSymbol } = await inquirer.prompt([
+            {
+              type: "input",
+              name: "cryptoSymbol",
+              message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+              default: "btc",
+            },
+          ]);
+
+          // Prompt for interval
+          const intervalChoice = await select({
+            message: "Select time interval:",
+            choices: [
+              { name: "1 Hour (recommended)", value: "1h" },
+              { name: "15 Minutes", value: "15m" },
+              { name: "4 Hours", value: "4h" },
+              { name: "1 Day", value: "1d" },
+            ],
+          });
+
+          await fullSignal(cryptoSymbol, intervalChoice as TimeInterval);
+          break;
+        }
+
         case "model": {
           // Fetch models from Groq API if not cached
           if (cachedModels.length === 0) {
@@ -303,7 +357,7 @@ program.action(async () => {
             } else if (selectedModel === currentModel) {
               log.info(`Already using ${selectedModel}`);
             }
-          } catch (e) {
+          } catch {
             // User cancelled with Ctrl+C
           }
           break;
@@ -583,7 +637,7 @@ program.action(async () => {
         } else {
           log.info("Keeping current model. You can try again or switch models with /model");
         }
-      } catch (e) {
+      } catch {
         // User cancelled with Ctrl+C
         log.info("Model switch cancelled.");
       }

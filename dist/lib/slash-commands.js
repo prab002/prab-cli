@@ -9,6 +9,12 @@ const search_1 = __importDefault(require("@inquirer/search"));
 const chalk_1 = __importDefault(require("chalk"));
 exports.SLASH_COMMANDS = [
     {
+        name: "/signal",
+        description: "Get crypto trading signal (e.g., /signal btc)",
+        shortcut: "sig",
+        action: "signal",
+    },
+    {
         name: "/model",
         description: "Switch between available AI models",
         shortcut: "m",
