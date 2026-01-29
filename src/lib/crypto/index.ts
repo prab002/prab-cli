@@ -32,5 +32,34 @@ export {
   displaySignal,
   quickSignal,
   fullSignal,
+  comprehensiveAnalysis,
+  displayComprehensiveAnalysis,
   type SignalResult,
 } from "./signal-generator";
+
+export {
+  analyzeMarket,
+  type ComprehensiveAnalysis,
+  type RecommendationType,
+  type TimeframeAnalysis,
+  type TimingRecommendation,
+  type TradeSetup,
+  type MarketCondition,
+} from "./market-analyzer";
+
+export {
+  calculateRSI,
+  calculateMACD,
+  calculateBollingerBands,
+  calculateATR,
+  analyzeVolume,
+  calculateSupportResistance,
+  analyzeTrend,
+  type RSIResult,
+  type MACDResult,
+  type BollingerResult,
+  type ATRResult,
+  type VolumeResult,
+  type SupportResistance,
+  type TrendResult,
+} from "./indicators";

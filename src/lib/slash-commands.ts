@@ -10,8 +10,14 @@ export interface SlashCommand {
 
 export const SLASH_COMMANDS: SlashCommand[] = [
   {
+    name: "/analyze",
+    description: "Deep crypto analysis with multi-timeframe & all indicators",
+    shortcut: "a",
+    action: "analyze",
+  },
+  {
     name: "/signal",
-    description: "Get crypto trading signal (e.g., /signal btc)",
+    description: "Quick crypto trading signal (e.g., /signal btc)",
     shortcut: "sig",
     action: "signal",
   },

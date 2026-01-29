@@ -44,7 +44,7 @@ import {
 import { TodoTool } from "./lib/tools/todo-tool";
 
 // Import crypto signal system
-import { fullSignal, getSupportedSymbols, TimeInterval } from "./lib/crypto";
+import { fullSignal, comprehensiveAnalysis, getSupportedSymbols, TimeInterval } from "./lib/crypto";
 
 // Import model system
 import { GroqProvider } from "./lib/models/groq-provider";
@@ -103,10 +103,18 @@ program
     log.success("API Key cleared!");
   });
 
-// Trading signal command
+// Comprehensive analysis command
+program
+  .command("analyze <crypto>")
+  .description("Deep market analysis with multi-timeframe & all indicators")
+  .action(async (crypto: string) => {
+    await comprehensiveAnalysis(crypto);
+  });
+
+// Quick trading signal command
 program
   .command("signal <crypto>")
-  .description("Get trading signal for a cryptocurrency (e.g., prab-cli signal btc)")
+  .description("Quick trading signal for a cryptocurrency (e.g., prab-cli signal btc)")
   .option("-i, --interval <interval>", "Time interval (1m, 5m, 15m, 1h, 4h, 1d, 1w)", "1h")
   .action(async (crypto: string, options: { interval: string }) => {
     const validIntervals = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
@@ -289,6 +297,21 @@ program.action(async () => {
 
       // Execute the selected command
       switch (action) {
+        case "analyze": {
+          // Prompt for crypto symbol
+          const { cryptoSymbol } = await inquirer.prompt([
+            {
+              type: "input",
+              name: "cryptoSymbol",
+              message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+              default: "btc",
+            },
+          ]);
+
+          await comprehensiveAnalysis(cryptoSymbol);
+          break;
+        }
+
         case "signal": {
           // Prompt for crypto symbol
           const { cryptoSymbol } = await inquirer.prompt([
