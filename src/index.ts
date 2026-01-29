@@ -44,7 +44,13 @@ import {
 import { TodoTool } from "./lib/tools/todo-tool";
 
 // Import crypto signal system
-import { fullSignal, comprehensiveAnalysis, getSupportedSymbols, TimeInterval } from "./lib/crypto";
+import {
+  fullSignal,
+  comprehensiveAnalysis,
+  runSMCAnalysis,
+  getSupportedSymbols,
+  TimeInterval,
+} from "./lib/crypto";
 
 // Import model system
 import { GroqProvider } from "./lib/models/groq-provider";
@@ -101,6 +107,14 @@ program
   .action(() => {
     clearApiKey();
     log.success("API Key cleared!");
+  });
+
+// SMC (Smart Money Concepts) analysis command
+program
+  .command("smc <crypto>")
+  .description("Smart Money Concepts analysis (Order Blocks, FVG, Liquidity)")
+  .action(async (crypto: string) => {
+    await runSMCAnalysis(crypto);
   });
 
 // Comprehensive analysis command
@@ -297,6 +311,21 @@ program.action(async () => {
 
       // Execute the selected command
       switch (action) {
+        case "smc": {
+          // Prompt for crypto symbol
+          const { cryptoSymbol } = await inquirer.prompt([
+            {
+              type: "input",
+              name: "cryptoSymbol",
+              message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+              default: "btc",
+            },
+          ]);
+
+          await runSMCAnalysis(cryptoSymbol);
+          break;
+        }
+
         case "analyze": {
           // Prompt for crypto symbol
           const { cryptoSymbol } = await inquirer.prompt([

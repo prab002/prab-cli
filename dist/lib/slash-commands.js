@@ -9,6 +9,12 @@ const search_1 = __importDefault(require("@inquirer/search"));
 const chalk_1 = __importDefault(require("chalk"));
 exports.SLASH_COMMANDS = [
     {
+        name: "/smc",
+        description: "Smart Money Concepts analysis (Order Blocks, FVG, Liquidity)",
+        shortcut: "smc",
+        action: "smc",
+    },
+    {
         name: "/analyze",
         description: "Deep crypto analysis with multi-timeframe & all indicators",
         shortcut: "a",

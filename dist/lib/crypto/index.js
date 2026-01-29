@@ -4,7 +4,7 @@
  * Exports all crypto-related functionality
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyzeTrend = exports.calculateSupportResistance = exports.analyzeVolume = exports.calculateATR = exports.calculateBollingerBands = exports.calculateMACD = exports.calculateRSI = exports.analyzeMarket = exports.displayComprehensiveAnalysis = exports.comprehensiveAnalysis = exports.fullSignal = exports.quickSignal = exports.displaySignal = exports.generateTradingSignal = exports.formatSignalSummary = exports.generateSignal = exports.calculateIndicators = exports.calculateAllEMAs = exports.calculateEMA = exports.isValidSymbol = exports.getSupportedSymbols = exports.normalizeSymbol = exports.fetch24hTicker = exports.fetchOHLCV = exports.fetchCryptoData = void 0;
+exports.displaySMCAnalysis = exports.runSMCAnalysis = exports.calculatePremiumDiscount = exports.findLiquidityZones = exports.findFairValueGaps = exports.findOrderBlocks = exports.findSwingPoints = exports.analyzeSMC = exports.analyzeTrend = exports.calculateSupportResistance = exports.analyzeVolume = exports.calculateATR = exports.calculateBollingerBands = exports.calculateMACD = exports.calculateRSI = exports.analyzeMarket = exports.displayComprehensiveAnalysis = exports.comprehensiveAnalysis = exports.fullSignal = exports.quickSignal = exports.displaySignal = exports.generateTradingSignal = exports.formatSignalSummary = exports.generateSignal = exports.calculateIndicators = exports.calculateAllEMAs = exports.calculateEMA = exports.isValidSymbol = exports.getSupportedSymbols = exports.normalizeSymbol = exports.fetch24hTicker = exports.fetchOHLCV = exports.fetchCryptoData = void 0;
 var data_fetcher_1 = require("./data-fetcher");
 Object.defineProperty(exports, "fetchCryptoData", { enumerable: true, get: function () { return data_fetcher_1.fetchCryptoData; } });
 Object.defineProperty(exports, "fetchOHLCV", { enumerable: true, get: function () { return data_fetcher_1.fetchOHLCV; } });
@@ -35,3 +35,13 @@ Object.defineProperty(exports, "calculateATR", { enumerable: true, get: function
 Object.defineProperty(exports, "analyzeVolume", { enumerable: true, get: function () { return indicators_1.analyzeVolume; } });
 Object.defineProperty(exports, "calculateSupportResistance", { enumerable: true, get: function () { return indicators_1.calculateSupportResistance; } });
 Object.defineProperty(exports, "analyzeTrend", { enumerable: true, get: function () { return indicators_1.analyzeTrend; } });
+var smc_indicators_1 = require("./smc-indicators");
+Object.defineProperty(exports, "analyzeSMC", { enumerable: true, get: function () { return smc_indicators_1.analyzeSMC; } });
+Object.defineProperty(exports, "findSwingPoints", { enumerable: true, get: function () { return smc_indicators_1.findSwingPoints; } });
+Object.defineProperty(exports, "findOrderBlocks", { enumerable: true, get: function () { return smc_indicators_1.findOrderBlocks; } });
+Object.defineProperty(exports, "findFairValueGaps", { enumerable: true, get: function () { return smc_indicators_1.findFairValueGaps; } });
+Object.defineProperty(exports, "findLiquidityZones", { enumerable: true, get: function () { return smc_indicators_1.findLiquidityZones; } });
+Object.defineProperty(exports, "calculatePremiumDiscount", { enumerable: true, get: function () { return smc_indicators_1.calculatePremiumDiscount; } });
+var smc_analyzer_1 = require("./smc-analyzer");
+Object.defineProperty(exports, "runSMCAnalysis", { enumerable: true, get: function () { return smc_analyzer_1.runSMCAnalysis; } });
+Object.defineProperty(exports, "displaySMCAnalysis", { enumerable: true, get: function () { return smc_analyzer_1.displaySMCAnalysis; } });

@@ -10,6 +10,12 @@ export interface SlashCommand {
 
 export const SLASH_COMMANDS: SlashCommand[] = [
   {
+    name: "/smc",
+    description: "Smart Money Concepts analysis (Order Blocks, FVG, Liquidity)",
+    shortcut: "smc",
+    action: "smc",
+  },
+  {
     name: "/analyze",
     description: "Deep crypto analysis with multi-timeframe & all indicators",
     shortcut: "a",

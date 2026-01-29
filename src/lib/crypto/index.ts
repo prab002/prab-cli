@@ -63,3 +63,25 @@ export {
   type SupportResistance,
   type TrendResult,
 } from "./indicators";
+
+export {
+  analyzeSMC,
+  findSwingPoints,
+  findOrderBlocks,
+  findFairValueGaps,
+  findLiquidityZones,
+  calculatePremiumDiscount,
+  type SMCAnalysis,
+  type OrderBlock,
+  type FairValueGap,
+  type StructureBreak,
+  type LiquidityZone,
+  type SwingPoint,
+} from "./smc-indicators";
+
+export {
+  runSMCAnalysis,
+  displaySMCAnalysis,
+  type FullSMCAnalysis,
+  type SMCTradeSetup,
+} from "./smc-analyzer";

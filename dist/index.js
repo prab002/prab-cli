@@ -100,6 +100,13 @@ program
     (0, config_1.clearApiKey)();
     ui_1.log.success("API Key cleared!");
 });
+// SMC (Smart Money Concepts) analysis command
+program
+    .command("smc <crypto>")
+    .description("Smart Money Concepts analysis (Order Blocks, FVG, Liquidity)")
+    .action(async (crypto) => {
+    await (0, crypto_1.runSMCAnalysis)(crypto);
+});
 // Comprehensive analysis command
 program
     .command("analyze <crypto>")
@@ -278,6 +285,19 @@ program.action(async () => {
             }
             // Execute the selected command
             switch (action) {
+                case "smc": {
+                    // Prompt for crypto symbol
+                    const { cryptoSymbol } = await inquirer_1.default.prompt([
+                        {
+                            type: "input",
+                            name: "cryptoSymbol",
+                            message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+                            default: "btc",
+                        },
+                    ]);
+                    await (0, crypto_1.runSMCAnalysis)(cryptoSymbol);
+                    break;
+                }
                 case "analyze": {
                     // Prompt for crypto symbol
                     const { cryptoSymbol } = await inquirer_1.default.prompt([

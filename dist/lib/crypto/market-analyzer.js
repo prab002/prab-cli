@@ -168,7 +168,10 @@ function generateTimingRecommendation(analysis, indicators, currentPrice, recomm
         return {
             action: "avoid",
             timing: "No clear setup - wait for better opportunity",
-            entryZone: { low: supportResistance.nearestSupport, high: supportResistance.nearestResistance },
+            entryZone: {
+                low: supportResistance.nearestSupport,
+                high: supportResistance.nearestResistance,
+            },
             reason: "Mixed signals suggest waiting for clearer direction",
         };
     }
@@ -179,7 +182,7 @@ function generateTimingRecommendation(analysis, indicators, currentPrice, recomm
 function generateTradeSetup(currentPrice, indicators, recommendation) {
     const { atr, supportResistance } = indicators;
     const atrValue = atr.current;
-    let entry = currentPrice;
+    const entry = currentPrice;
     let stopLoss;
     let target1;
     let target2;
@@ -392,10 +395,14 @@ async function analyzeMarket(symbol) {
     };
     // Determine timeframe alignment
     let timeframeAlignment = "mixed";
-    if (shortTF.signal === "bullish" && mediumTF.signal === "bullish" && longTF.signal === "bullish") {
+    if (shortTF.signal === "bullish" &&
+        mediumTF.signal === "bullish" &&
+        longTF.signal === "bullish") {
         timeframeAlignment = "aligned_bullish";
     }
-    else if (shortTF.signal === "bearish" && mediumTF.signal === "bearish" && longTF.signal === "bearish") {
+    else if (shortTF.signal === "bearish" &&
+        mediumTF.signal === "bearish" &&
+        longTF.signal === "bearish") {
         timeframeAlignment = "aligned_bearish";
     }
     // Calculate recommendation score
@@ -435,7 +442,7 @@ async function analyzeMarket(symbol) {
         score -= 3;
     // Volume confirmation
     if (indicators.volume.confirmation)
-        score += (score > 0 ? 1 : -1);
+        score += score > 0 ? 1 : -1;
     // Determine recommendation
     let recommendation;
     if (score >= 8)

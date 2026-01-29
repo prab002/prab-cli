@@ -287,10 +287,16 @@ MARKET CONDITION: ${analysis.marketCondition.type}
 ${analysis.marketCondition.description}
 
 Bullish Factors:
-${analysis.reasoning.bullishFactors.slice(0, 3).map((f) => `- ${f}`).join("\n")}
+${analysis.reasoning.bullishFactors
+        .slice(0, 3)
+        .map((f) => `- ${f}`)
+        .join("\n")}
 
 Bearish Factors:
-${analysis.reasoning.bearishFactors.slice(0, 3).map((f) => `- ${f}`).join("\n")}
+${analysis.reasoning.bearishFactors
+        .slice(0, 3)
+        .map((f) => `- ${f}`)
+        .join("\n")}
 
 Warnings:
 ${analysis.reasoning.warnings.map((w) => `- ${w}`).join("\n")}
@@ -396,9 +402,11 @@ function displayComprehensiveAnalysis(analysis, aiAnalysis) {
     const recColor = recColors[analysis.recommendation] || chalk_1.default.white;
     const recIcon = recIcons[analysis.recommendation] || "";
     line(chalk_1.default.bold(`\u{1F3AF} RECOMMENDATION: ${recIcon} ${recColor(analysis.recommendation)}`));
-    line(`   Confidence: ${chalk_1.default.white(analysis.confidence + "%")}  |  Risk: ${analysis.riskLevel === "low" ? chalk_1.default.green(analysis.riskLevel) :
-        analysis.riskLevel === "medium" ? chalk_1.default.yellow(analysis.riskLevel) :
-            chalk_1.default.red(analysis.riskLevel)}`);
+    line(`   Confidence: ${chalk_1.default.white(analysis.confidence + "%")}  |  Risk: ${analysis.riskLevel === "low"
+        ? chalk_1.default.green(analysis.riskLevel)
+        : analysis.riskLevel === "medium"
+            ? chalk_1.default.yellow(analysis.riskLevel)
+            : chalk_1.default.red(analysis.riskLevel)}`);
     // Timing
     console.log(border.mid);
     line(chalk_1.default.bold("\u{23F0} TIMING"));
@@ -411,41 +419,71 @@ function displayComprehensiveAnalysis(analysis, aiAnalysis) {
     console.log(border.mid);
     line(chalk_1.default.bold("\u{1F4B0} TRADE SETUP"));
     line(`   Entry:      ${chalk_1.default.white(formatPrice(analysis.tradeSetup.entry))}`);
-    line(`   Stop Loss:  ${chalk_1.default.red(formatPrice(analysis.tradeSetup.stopLoss))} (${chalk_1.default.red("-" + (((analysis.tradeSetup.entry - analysis.tradeSetup.stopLoss) / analysis.tradeSetup.entry) * 100).toFixed(1) + "%")})`);
-    line(`   Target 1:   ${chalk_1.default.green(formatPrice(analysis.tradeSetup.target1))} (${chalk_1.default.green("+" + (((analysis.tradeSetup.target1 - analysis.tradeSetup.entry) / analysis.tradeSetup.entry) * 100).toFixed(1) + "%")})`);
-    line(`   Target 2:   ${chalk_1.default.green(formatPrice(analysis.tradeSetup.target2))} (${chalk_1.default.green("+" + (((analysis.tradeSetup.target2 - analysis.tradeSetup.entry) / analysis.tradeSetup.entry) * 100).toFixed(1) + "%")})`);
+    line(`   Stop Loss:  ${chalk_1.default.red(formatPrice(analysis.tradeSetup.stopLoss))} (${chalk_1.default.red("-" +
+        (((analysis.tradeSetup.entry - analysis.tradeSetup.stopLoss) / analysis.tradeSetup.entry) *
+            100).toFixed(1) +
+        "%")})`);
+    line(`   Target 1:   ${chalk_1.default.green(formatPrice(analysis.tradeSetup.target1))} (${chalk_1.default.green("+" +
+        (((analysis.tradeSetup.target1 - analysis.tradeSetup.entry) / analysis.tradeSetup.entry) *
+            100).toFixed(1) +
+        "%")})`);
+    line(`   Target 2:   ${chalk_1.default.green(formatPrice(analysis.tradeSetup.target2))} (${chalk_1.default.green("+" +
+        (((analysis.tradeSetup.target2 - analysis.tradeSetup.entry) / analysis.tradeSetup.entry) *
+            100).toFixed(1) +
+        "%")})`);
     line(`   R/R Ratio:  ${chalk_1.default.cyan(analysis.tradeSetup.riskRewardRatio + ":1")}`);
     // Multi-Timeframe
     console.log(border.mid);
     line(chalk_1.default.bold("\u{1F4C8} MULTI-TIMEFRAME ANALYSIS"));
-    const tfIcon = (signal) => signal === "bullish" ? chalk_1.default.green("\u{2191}") : signal === "bearish" ? chalk_1.default.red("\u{2193}") : chalk_1.default.yellow("\u{2192}");
+    const tfIcon = (signal) => signal === "bullish"
+        ? chalk_1.default.green("\u{2191}")
+        : signal === "bearish"
+            ? chalk_1.default.red("\u{2193}")
+            : chalk_1.default.yellow("\u{2192}");
     line(`   1H:  ${tfIcon(analysis.timeframes.short.signal)} ${analysis.timeframes.short.signal.padEnd(8)} | RSI: ${analysis.timeframes.short.rsi.current.toFixed(0)}`);
     line(`   4H:  ${tfIcon(analysis.timeframes.medium.signal)} ${analysis.timeframes.medium.signal.padEnd(8)} | RSI: ${analysis.timeframes.medium.rsi.current.toFixed(0)}`);
     line(`   1D:  ${tfIcon(analysis.timeframes.long.signal)} ${analysis.timeframes.long.signal.padEnd(8)} | RSI: ${analysis.timeframes.long.rsi.current.toFixed(0)}`);
-    const alignmentColor = analysis.timeframeAlignment === "aligned_bullish" ? chalk_1.default.green :
-        analysis.timeframeAlignment === "aligned_bearish" ? chalk_1.default.red : chalk_1.default.yellow;
+    const alignmentColor = analysis.timeframeAlignment === "aligned_bullish"
+        ? chalk_1.default.green
+        : analysis.timeframeAlignment === "aligned_bearish"
+            ? chalk_1.default.red
+            : chalk_1.default.yellow;
     line(`   Alignment: ${alignmentColor(analysis.timeframeAlignment.replace(/_/g, " "))}`);
     // Indicators
     console.log(border.mid);
     line(chalk_1.default.bold("\u{1F4CA} INDICATORS"));
     // RSI
-    const rsiColor = analysis.indicators.rsi.condition === "overbought" ? chalk_1.default.red :
-        analysis.indicators.rsi.condition === "oversold" ? chalk_1.default.green : chalk_1.default.white;
-    line(`   RSI(14):    ${rsiColor(analysis.indicators.rsi.current.toFixed(1))} (${analysis.indicators.rsi.condition})${analysis.indicators.rsi.divergence !== "none" ? chalk_1.default.magenta(` - ${analysis.indicators.rsi.divergence} div`) : ""}`);
+    const rsiColor = analysis.indicators.rsi.condition === "overbought"
+        ? chalk_1.default.red
+        : analysis.indicators.rsi.condition === "oversold"
+            ? chalk_1.default.green
+            : chalk_1.default.white;
+    line(`   RSI(14):    ${rsiColor(analysis.indicators.rsi.current.toFixed(1))} (${analysis.indicators.rsi.condition})${analysis.indicators.rsi.divergence !== "none"
+        ? chalk_1.default.magenta(` - ${analysis.indicators.rsi.divergence} div`)
+        : ""}`);
     // MACD
-    const macdColor = analysis.indicators.macd.crossover === "bullish" ? chalk_1.default.green :
-        analysis.indicators.macd.crossover === "bearish" ? chalk_1.default.red : chalk_1.default.gray;
+    const macdColor = analysis.indicators.macd.crossover === "bullish"
+        ? chalk_1.default.green
+        : analysis.indicators.macd.crossover === "bearish"
+            ? chalk_1.default.red
+            : chalk_1.default.gray;
     line(`   MACD:       ${macdColor(analysis.indicators.macd.crossover)} | momentum ${analysis.indicators.macd.momentum}`);
     // Bollinger
     const bbPosition = analysis.indicators.bollinger.pricePosition.replace(/_/g, " ");
     line(`   Bollinger:  ${bbPosition}${analysis.indicators.bollinger.squeeze ? chalk_1.default.yellow(" [SQUEEZE]") : ""}`);
     // Volume
-    const volColor = analysis.indicators.volume.volumeRatio > 1.2 ? chalk_1.default.green :
-        analysis.indicators.volume.volumeRatio < 0.8 ? chalk_1.default.red : chalk_1.default.white;
+    const volColor = analysis.indicators.volume.volumeRatio > 1.2
+        ? chalk_1.default.green
+        : analysis.indicators.volume.volumeRatio < 0.8
+            ? chalk_1.default.red
+            : chalk_1.default.white;
     line(`   Volume:     ${volColor(analysis.indicators.volume.volumeRatio.toFixed(1) + "x")} avg | ${analysis.indicators.volume.trend}`);
     // ATR
-    const atrColor = analysis.indicators.atr.volatility === "high" ? chalk_1.default.red :
-        analysis.indicators.atr.volatility === "low" ? chalk_1.default.green : chalk_1.default.yellow;
+    const atrColor = analysis.indicators.atr.volatility === "high"
+        ? chalk_1.default.red
+        : analysis.indicators.atr.volatility === "low"
+            ? chalk_1.default.green
+            : chalk_1.default.yellow;
     line(`   Volatility: ${atrColor(analysis.indicators.atr.volatility)} (ATR: ${analysis.indicators.atr.percentOfPrice.toFixed(1)}%)`);
     // Key Levels
     console.log(border.mid);
@@ -461,7 +499,8 @@ function displayComprehensiveAnalysis(analysis, aiAnalysis) {
     const conditionLines = wordWrap(analysis.marketCondition.tradingAdvice, contentWidth - 3);
     conditionLines.forEach((l) => line(chalk_1.default.gray(`   ${l}`)));
     // Bullish/Bearish Factors
-    if (analysis.reasoning.bullishFactors.length > 0 || analysis.reasoning.bearishFactors.length > 0) {
+    if (analysis.reasoning.bullishFactors.length > 0 ||
+        analysis.reasoning.bearishFactors.length > 0) {
         console.log(border.mid);
         if (analysis.reasoning.bullishFactors.length > 0) {
             line(chalk_1.default.green.bold("\u{2705} BULLISH FACTORS"));
