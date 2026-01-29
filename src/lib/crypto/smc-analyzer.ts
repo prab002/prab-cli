@@ -5,11 +5,20 @@
 
 import chalk from "chalk";
 import ora from "ora";
-import { fetchCryptoData, TimeInterval } from "./data-fetcher";
+import { fetchCryptoData, TimeInterval, OHLCV } from "./data-fetcher";
 import { analyzeSMC, SMCAnalysis } from "./smc-indicators";
 import { calculateRSI, calculateMACD, analyzeTrend } from "./indicators";
 import { getApiKey, getModelConfig } from "../config";
 import { GroqProvider } from "../models/groq-provider";
+import {
+  createMarketStructureVisual,
+  createOrderBlockVisual,
+  createFVGVisual,
+  createLiquidityVisual,
+  createTradeSetupVisual,
+  createSMCVisualChart,
+  createCandlestickChart,
+} from "./chart-visual";
 
 // ============================================
 // TYPES
@@ -37,6 +46,7 @@ export interface FullSMCAnalysis {
   tradeSetup: SMCTradeSetup;
   confluence: string[];
   warnings: string[];
+  candles: OHLCV[];
 }
 
 // ============================================
@@ -407,6 +417,69 @@ export function displaySMCAnalysis(analysis: FullSMCAnalysis, aiAnalysis?: strin
   }
 
   console.log(border.bot);
+
+  // ============================================
+  // VISUAL CHARTS SECTION
+  // ============================================
+
+  console.log("");
+  console.log(chalk.bold.cyan("  ═══════════════════════════════════════════════════════"));
+  console.log(chalk.bold.cyan("                    📊 VISUAL ANALYSIS                    "));
+  console.log(chalk.bold.cyan("  ═══════════════════════════════════════════════════════"));
+
+  // Market Structure Visual
+  createMarketStructureVisual(smc).forEach((l) => console.log(l));
+
+  // Price Candlestick Chart (if candles available)
+  if (analysis.candles && analysis.candles.length > 0) {
+    console.log(chalk.bold.white("  ┌─────────────────────────────────────────────┐"));
+    console.log(
+      chalk.bold.white("  │") +
+        chalk.bold.yellow("           PRICE ACTION (Last 50 Candles)    ") +
+        chalk.bold.white("│")
+    );
+    console.log(chalk.bold.white("  └─────────────────────────────────────────────┘"));
+    console.log("");
+    const candleChart = createCandlestickChart(analysis.candles, 45, 12);
+    candleChart.forEach((l) => console.log("    " + l));
+    console.log(chalk.gray("    └" + "─".repeat(45) + "┘"));
+    console.log(
+      chalk.gray(
+        "     " +
+          chalk.green("█ Bullish") +
+          "  " +
+          chalk.red("░ Bearish") +
+          "  " +
+          chalk.gray("│ Wick")
+      )
+    );
+    console.log("");
+  }
+
+  // Order Block Visual
+  createOrderBlockVisual(smc.orderBlocks, currentPrice).forEach((l) => console.log(l));
+
+  // FVG Visual
+  createFVGVisual(smc.fairValueGaps, currentPrice).forEach((l) => console.log(l));
+
+  // Liquidity Visual
+  createLiquidityVisual(smc.liquidity, currentPrice).forEach((l) => console.log(l));
+
+  // Trade Setup Visual
+  const entryMid = (tradeSetup.entry.zone.low + tradeSetup.entry.zone.high) / 2;
+  createTradeSetupVisual(
+    currentPrice,
+    entryMid,
+    tradeSetup.stopLoss,
+    tradeSetup.targets,
+    tradeSetup.bias
+  ).forEach((l) => console.log(l));
+
+  // SMC Price Level Chart
+  console.log("");
+  const smcChart = createSMCVisualChart(currentPrice, smc, tradeSetup);
+  smcChart.forEach((l) => console.log(l));
+
   console.log("");
   console.log(
     chalk.gray.italic(
@@ -441,6 +514,7 @@ export async function runSMCAnalysis(symbol: string): Promise<void> {
       tradeSetup,
       confluence: smc.bias.reasoning,
       warnings: [],
+      candles: data.candles,
     };
 
     spinner.text = "Getting AI insights...";

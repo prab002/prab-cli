@@ -15,12 +15,13 @@ const data_fetcher_1 = require("./data-fetcher");
 const smc_indicators_1 = require("./smc-indicators");
 const config_1 = require("../config");
 const groq_provider_1 = require("../models/groq-provider");
+const chart_visual_1 = require("./chart-visual");
 // ============================================
 // TRADE SETUP GENERATION
 // ============================================
 function generateSMCTradeSetup(smc, currentPrice) {
     const { marketStructure, orderBlocks, fairValueGaps, liquidity, premiumDiscount, bias } = smc;
-    let setup = {
+    const setup = {
         bias: bias.direction === "bullish" ? "long" : bias.direction === "bearish" ? "short" : "neutral",
         confidence: bias.confidence,
         entry: {
@@ -67,11 +68,7 @@ function generateSMCTradeSetup(smc, currentPrice) {
             setup.targets = liquidity.buySide.slice(0, 3).map((l) => l.level);
         }
         else {
-            setup.targets = [
-                currentPrice * 1.02,
-                currentPrice * 1.04,
-                premiumDiscount.rangeHigh,
-            ];
+            setup.targets = [currentPrice * 1.02, currentPrice * 1.04, premiumDiscount.rangeHigh];
         }
         setup.invalidation = `Break below ${marketStructure.swingLows[marketStructure.swingLows.length - 1]?.price.toFixed(2) || "recent low"}`;
     }
@@ -108,11 +105,7 @@ function generateSMCTradeSetup(smc, currentPrice) {
             setup.targets = liquidity.sellSide.slice(0, 3).map((l) => l.level);
         }
         else {
-            setup.targets = [
-                currentPrice * 0.98,
-                currentPrice * 0.96,
-                premiumDiscount.rangeLow,
-            ];
+            setup.targets = [currentPrice * 0.98, currentPrice * 0.96, premiumDiscount.rangeLow];
         }
         setup.invalidation = `Break above ${marketStructure.swingHighs[marketStructure.swingHighs.length - 1]?.price.toFixed(2) || "recent high"}`;
     }
@@ -248,8 +241,11 @@ function displaySMCAnalysis(analysis, aiAnalysis) {
     // Market Structure
     console.log(border.mid);
     line(chalk_1.default.bold("\u{1F4CA} MARKET STRUCTURE"));
-    const trendColor = smc.marketStructure.trend === "bullish" ? chalk_1.default.green :
-        smc.marketStructure.trend === "bearish" ? chalk_1.default.red : chalk_1.default.yellow;
+    const trendColor = smc.marketStructure.trend === "bullish"
+        ? chalk_1.default.green
+        : smc.marketStructure.trend === "bearish"
+            ? chalk_1.default.red
+            : chalk_1.default.yellow;
     line(`   Trend: ${trendColor(smc.marketStructure.trend.toUpperCase())}`);
     if (smc.marketStructure.lastBOS) {
         const bosColor = smc.marketStructure.lastBOS.direction === "bullish" ? chalk_1.default.green : chalk_1.default.red;
@@ -296,17 +292,26 @@ function displaySMCAnalysis(analysis, aiAnalysis) {
     // Premium/Discount
     console.log(border.mid);
     line(chalk_1.default.bold("\u{1F3AF} PREMIUM/DISCOUNT"));
-    const zoneColor = smc.premiumDiscount.zone === "discount" ? chalk_1.default.green :
-        smc.premiumDiscount.zone === "premium" ? chalk_1.default.red : chalk_1.default.yellow;
+    const zoneColor = smc.premiumDiscount.zone === "discount"
+        ? chalk_1.default.green
+        : smc.premiumDiscount.zone === "premium"
+            ? chalk_1.default.red
+            : chalk_1.default.yellow;
     line(`   Zone: ${zoneColor(smc.premiumDiscount.zone.toUpperCase())} (${smc.premiumDiscount.fibLevel.toFixed(0)}%)`);
     line(`   Range: ${formatPrice(smc.premiumDiscount.rangeLow)} - ${formatPrice(smc.premiumDiscount.rangeHigh)}`);
     line(`   Equilibrium: ${formatPrice(smc.premiumDiscount.equilibrium)}`);
     // Trade Setup
     console.log(border.mid);
-    const biasColor = tradeSetup.bias === "long" ? chalk_1.default.green.bold :
-        tradeSetup.bias === "short" ? chalk_1.default.red.bold : chalk_1.default.yellow.bold;
-    const biasIcon = tradeSetup.bias === "long" ? "\u{1F7E2}" :
-        tradeSetup.bias === "short" ? "\u{1F534}" : "\u{1F7E1}";
+    const biasColor = tradeSetup.bias === "long"
+        ? chalk_1.default.green.bold
+        : tradeSetup.bias === "short"
+            ? chalk_1.default.red.bold
+            : chalk_1.default.yellow.bold;
+    const biasIcon = tradeSetup.bias === "long"
+        ? "\u{1F7E2}"
+        : tradeSetup.bias === "short"
+            ? "\u{1F534}"
+            : "\u{1F7E1}";
     line(chalk_1.default.bold(`\u{1F4DD} TRADE SETUP: ${biasIcon} ${biasColor(tradeSetup.bias.toUpperCase())}`));
     line(`   Confidence: ${chalk_1.default.white(tradeSetup.confidence + "%")}`);
     line(`   Entry Type: ${chalk_1.default.cyan(tradeSetup.entry.type.replace(/_/g, " "))}`);
@@ -314,7 +319,7 @@ function displaySMCAnalysis(analysis, aiAnalysis) {
     line(`   Stop Loss: ${chalk_1.default.red(formatPrice(tradeSetup.stopLoss))}`);
     line(`   Targets:`);
     tradeSetup.targets.slice(0, 3).forEach((t, i) => {
-        const pct = ((t - currentPrice) / currentPrice * 100);
+        const pct = ((t - currentPrice) / currentPrice) * 100;
         const pctStr = pct >= 0 ? `+${pct.toFixed(1)}%` : `${pct.toFixed(1)}%`;
         line(`     T${i + 1}: ${chalk_1.default.green(formatPrice(t))} (${chalk_1.default.green(pctStr)})`);
     });
@@ -334,6 +339,40 @@ function displaySMCAnalysis(analysis, aiAnalysis) {
         aiLines.forEach((l) => line(chalk_1.default.white(`   ${l}`)));
     }
     console.log(border.bot);
+    // ============================================
+    // VISUAL CHARTS SECTION
+    // ============================================
+    console.log("");
+    console.log(chalk_1.default.bold.cyan("  ═══════════════════════════════════════════════════════"));
+    console.log(chalk_1.default.bold.cyan("                    📊 VISUAL ANALYSIS                    "));
+    console.log(chalk_1.default.bold.cyan("  ═══════════════════════════════════════════════════════"));
+    // Market Structure Visual
+    (0, chart_visual_1.createMarketStructureVisual)(smc).forEach((l) => console.log(l));
+    // Price Candlestick Chart (if candles available)
+    if (analysis.candles && analysis.candles.length > 0) {
+        console.log(chalk_1.default.bold.white("  ┌─────────────────────────────────────────────┐"));
+        console.log(chalk_1.default.bold.white("  │") + chalk_1.default.bold.yellow("           PRICE ACTION (Last 50 Candles)    ") + chalk_1.default.bold.white("│"));
+        console.log(chalk_1.default.bold.white("  └─────────────────────────────────────────────┘"));
+        console.log("");
+        const candleChart = (0, chart_visual_1.createCandlestickChart)(analysis.candles, 45, 12);
+        candleChart.forEach((l) => console.log("    " + l));
+        console.log(chalk_1.default.gray("    └" + "─".repeat(45) + "┘"));
+        console.log(chalk_1.default.gray("     " + chalk_1.default.green("█ Bullish") + "  " + chalk_1.default.red("░ Bearish") + "  " + chalk_1.default.gray("│ Wick")));
+        console.log("");
+    }
+    // Order Block Visual
+    (0, chart_visual_1.createOrderBlockVisual)(smc.orderBlocks, currentPrice).forEach((l) => console.log(l));
+    // FVG Visual
+    (0, chart_visual_1.createFVGVisual)(smc.fairValueGaps, currentPrice).forEach((l) => console.log(l));
+    // Liquidity Visual
+    (0, chart_visual_1.createLiquidityVisual)(smc.liquidity, currentPrice).forEach((l) => console.log(l));
+    // Trade Setup Visual
+    const entryMid = (tradeSetup.entry.zone.low + tradeSetup.entry.zone.high) / 2;
+    (0, chart_visual_1.createTradeSetupVisual)(currentPrice, entryMid, tradeSetup.stopLoss, tradeSetup.targets, tradeSetup.bias).forEach((l) => console.log(l));
+    // SMC Price Level Chart
+    console.log("");
+    const smcChart = (0, chart_visual_1.createSMCVisualChart)(currentPrice, smc, tradeSetup);
+    smcChart.forEach((l) => console.log(l));
     console.log("");
     console.log(chalk_1.default.gray.italic("  \u{26A0}\u{FE0F}  This is not financial advice. Always do your own research."));
     console.log("");
@@ -358,6 +397,7 @@ async function runSMCAnalysis(symbol) {
             tradeSetup,
             confluence: smc.bias.reasoning,
             warnings: [],
+            candles: data.candles,
         };
         spinner.text = "Getting AI insights...";
         const aiAnalysis = await generateSMCAIAnalysis(analysis);

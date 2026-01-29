@@ -152,7 +152,7 @@ function findOrderBlocks(candles, lookback = 50) {
         if (candle.close < candle.open && // Bearish candle
             nextCandle.close > nextCandle.open && // Followed by bullish
             nextCandle.close > candle.high && // Strong bullish move
-            (nextCandle.close - nextCandle.open) > (candle.open - candle.close) * 1.5 // Momentum
+            nextCandle.close - nextCandle.open > (candle.open - candle.close) * 1.5 // Momentum
         ) {
             const ob = {
                 type: "bullish",
@@ -184,7 +184,7 @@ function findOrderBlocks(candles, lookback = 50) {
         if (candle.close > candle.open && // Bullish candle
             nextCandle.close < nextCandle.open && // Followed by bearish
             nextCandle.close < candle.low && // Strong bearish move
-            (nextCandle.open - nextCandle.close) > (candle.close - candle.open) * 1.5 // Momentum
+            nextCandle.open - nextCandle.close > (candle.close - candle.open) * 1.5 // Momentum
         ) {
             const ob = {
                 type: "bearish",
