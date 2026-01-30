@@ -72,6 +72,71 @@ const SYMBOL_MAP: Record<string, string> = {
 
 const BINANCE_API_BASE = "https://api.binance.com/api/v3";
 
+// Cache for valid Binance symbols
+let cachedSymbols: Set<string> | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 1000 * 60 * 60; // 1 hour cache
+
+/**
+ * Fetch all valid USDT trading pairs from Binance
+ */
+export async function fetchAllSymbols(): Promise<Set<string>> {
+  // Return cached symbols if still valid
+  if (cachedSymbols && Date.now() - cacheTimestamp < CACHE_DURATION) {
+    return cachedSymbols;
+  }
+
+  try {
+    const response = await fetch(`${BINANCE_API_BASE}/exchangeInfo`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch exchange info");
+    }
+
+    const data = await response.json();
+    const symbols = new Set<string>();
+
+    for (const symbol of data.symbols) {
+      // Only include USDT pairs that are trading
+      if (symbol.status === "TRADING" && symbol.quoteAsset === "USDT") {
+        symbols.add(symbol.symbol);
+        // Also add the base asset for easy lookup
+        symbols.add(symbol.baseAsset.toLowerCase());
+      }
+    }
+
+    cachedSymbols = symbols;
+    cacheTimestamp = Date.now();
+    return symbols;
+  } catch (error) {
+    // Return empty set on error, will fall back to direct API check
+    return new Set();
+  }
+}
+
+/**
+ * Get similar symbols for suggestions
+ */
+export async function findSimilarSymbols(input: string, limit: number = 5): Promise<string[]> {
+  const symbols = await fetchAllSymbols();
+  const inputUpper = input.toUpperCase();
+  const similar: string[] = [];
+
+  for (const symbol of symbols) {
+    // Only show USDT pairs, not base assets
+    if (!symbol.endsWith("USDT")) continue;
+
+    const baseAsset = symbol.replace("USDT", "");
+
+    // Check if base asset starts with or contains the input
+    if (baseAsset.startsWith(inputUpper) || baseAsset.includes(inputUpper)) {
+      similar.push(baseAsset);
+      if (similar.length >= limit) break;
+    }
+  }
+
+  return similar;
+}
+
 /**
  * Normalize symbol to Binance format
  */
@@ -206,10 +271,45 @@ export function getSupportedSymbols(): string[] {
 export async function isValidSymbol(symbol: string): Promise<boolean> {
   try {
     const normalizedSymbol = normalizeSymbol(symbol);
+
+    // First check cache
+    const symbols = await fetchAllSymbols();
+    if (symbols.has(normalizedSymbol)) {
+      return true;
+    }
+
+    // Fall back to direct API check
     const url = `${BINANCE_API_BASE}/ticker/price?symbol=${normalizedSymbol}`;
     const response = await fetch(url);
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Validate symbol and get suggestions if invalid
+ */
+export async function validateSymbol(symbol: string): Promise<{
+  valid: boolean;
+  normalized: string;
+  suggestions: string[];
+}> {
+  const normalized = normalizeSymbol(symbol);
+
+  try {
+    const url = `${BINANCE_API_BASE}/ticker/price?symbol=${normalized}`;
+    const response = await fetch(url);
+
+    if (response.ok) {
+      return { valid: true, normalized, suggestions: [] };
+    }
+
+    // If invalid, find similar symbols
+    const suggestions = await findSimilarSymbols(symbol, 5);
+    return { valid: false, normalized, suggestions };
+  } catch {
+    const suggestions = await findSimilarSymbols(symbol, 5);
+    return { valid: false, normalized, suggestions };
   }
 }

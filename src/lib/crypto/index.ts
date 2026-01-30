@@ -107,3 +107,11 @@ export {
   type CryptoNews,
   type NewsResult,
 } from "./news-fetcher";
+
+export {
+  runStrategy,
+  generateTradeSetup,
+  displayTradeSetup,
+  type TradeSetupResult,
+  type StrategyConfig,
+} from "./strategy-engine";

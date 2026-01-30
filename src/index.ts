@@ -51,6 +51,7 @@ import {
   runWhaleTracker,
   runMarketScanner,
   runCryptoNews,
+  runStrategy,
   getSupportedSymbols,
   TimeInterval,
 } from "./lib/crypto";
@@ -191,6 +192,27 @@ program
   .action(async (options: { coin?: string }) => {
     await runCryptoNews(options.coin);
   });
+
+// Smart trading strategy
+program
+  .command("strategy <crypto>")
+  .description("Generate smart trading strategy with entry, exit, and leverage")
+  .option("-s, --style <style>", "Trading style: conservative, moderate, aggressive", "moderate")
+  .option("-l, --leverage <number>", "Maximum leverage allowed", "20")
+  .option("-d, --direction <direction>", "Trade direction: both, long, short", "both")
+  .action(
+    async (crypto: string, options: { style: string; leverage: string; direction: string }) => {
+      const style = ["conservative", "moderate", "aggressive"].includes(options.style)
+        ? (options.style as "conservative" | "moderate" | "aggressive")
+        : "moderate";
+      const maxLeverage = Math.min(parseInt(options.leverage) || 20, 100);
+      const direction = ["both", "long", "short"].includes(options.direction)
+        ? (options.direction as "both" | "long" | "short")
+        : "both";
+
+      await runStrategy(crypto, { style, maxLeverage, direction });
+    }
+  );
 
 // Model management commands
 program
@@ -460,6 +482,45 @@ program.action(async () => {
           }
 
           await runCryptoNews(coinFilter);
+          break;
+        }
+
+        case "strategy": {
+          // Prompt for crypto symbol
+          const { strategySymbol } = await inquirer.prompt([
+            {
+              type: "input",
+              name: "strategySymbol",
+              message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+              default: "btc",
+            },
+          ]);
+
+          // Prompt for trading style
+          const styleChoice = await select({
+            message: "Select your trading style:",
+            choices: [
+              { name: "Conservative (5-10x leverage, wider stops)", value: "conservative" },
+              { name: "Moderate (10-20x leverage, balanced) - Recommended", value: "moderate" },
+              { name: "Aggressive (20-50x leverage, tighter stops)", value: "aggressive" },
+            ],
+          });
+
+          // Prompt for direction
+          const directionChoice = await select({
+            message: "Trade direction:",
+            choices: [
+              { name: "Both Long & Short", value: "both" },
+              { name: "Long Only", value: "long" },
+              { name: "Short Only", value: "short" },
+            ],
+          });
+
+          await runStrategy(strategySymbol, {
+            style: styleChoice as "conservative" | "moderate" | "aggressive",
+            direction: directionChoice as "both" | "long" | "short",
+            maxLeverage: styleChoice === "conservative" ? 10 : styleChoice === "moderate" ? 20 : 50,
+          });
           break;
         }
 

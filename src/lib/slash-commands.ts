@@ -46,6 +46,12 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     action: "news",
   },
   {
+    name: "/strategy",
+    description: "Smart trading strategy with entry, exit, leverage & multi-timeframe",
+    shortcut: "st",
+    action: "strategy",
+  },
+  {
     name: "/model",
     description: "Switch between available AI models",
     shortcut: "m",

@@ -5,7 +5,7 @@
 
 import chalk from "chalk";
 import ora from "ora";
-import { fetchCryptoData, normalizeSymbol, TimeInterval } from "./data-fetcher";
+import { fetchCryptoData, normalizeSymbol, TimeInterval, findSimilarSymbols } from "./data-fetcher";
 import { generateSignal, TradingSignal } from "./analyzer";
 import { analyzeMarket, ComprehensiveAnalysis } from "./market-analyzer";
 import { getApiKey, getModelConfig } from "../config";
@@ -176,9 +176,45 @@ export async function generateTradingSignal(
 /**
  * Display trading signal in terminal
  */
-export function displaySignal(result: SignalResult): void {
+export async function displaySignal(result: SignalResult): Promise<void> {
   if (!result.success || !result.signal) {
-    console.log(chalk.red(`\nError: ${result.error}`));
+    console.log("");
+    console.log(
+      chalk.red("  ╔═══════════════════════════════════════════════════════════════════════╗")
+    );
+    console.log(
+      chalk.red("  ║                      ❌ SIGNAL ERROR                                  ║")
+    );
+    console.log(
+      chalk.red("  ╚═══════════════════════════════════════════════════════════════════════╝")
+    );
+    console.log("");
+
+    if (result.error?.includes("Invalid symbol") || result.error?.includes("Failed to fetch")) {
+      // Extract the base symbol from the normalized symbol
+      const baseSymbol = result.symbol.replace("USDT", "");
+      console.log(chalk.yellow(`  ⚠️  Invalid symbol: "${baseSymbol}"`));
+      console.log("");
+
+      // Get similar symbols from Binance
+      const suggestions = await findSimilarSymbols(baseSymbol, 8);
+
+      if (suggestions.length > 0) {
+        console.log(chalk.gray("  Did you mean one of these?"));
+        console.log("");
+        console.log(chalk.cyan(`    ${suggestions.join(", ")}`));
+        console.log("");
+      }
+
+      console.log(chalk.gray("  The symbol you entered is not available on Binance."));
+      console.log(
+        chalk.gray("  You can use any valid Binance USDT pair (e.g., BTC, ETH, HYPE, WIF)")
+      );
+      console.log("");
+    } else {
+      console.log(chalk.yellow(`  ⚠️  ${result.error || "An unexpected error occurred"}`));
+    }
+    console.log("");
     return;
   }
 
@@ -357,7 +393,7 @@ export function displaySignal(result: SignalResult): void {
  */
 export async function quickSignal(symbol: string): Promise<void> {
   const result = await generateTradingSignal(symbol, "1h", false);
-  displaySignal(result);
+  await displaySignal(result);
 }
 
 /**
@@ -365,7 +401,7 @@ export async function quickSignal(symbol: string): Promise<void> {
  */
 export async function fullSignal(symbol: string, interval: TimeInterval = "1h"): Promise<void> {
   const result = await generateTradingSignal(symbol, interval, true);
-  displaySignal(result);
+  await displaySignal(result);
 }
 
 // ============================================
@@ -828,6 +864,39 @@ export async function comprehensiveAnalysis(symbol: string): Promise<void> {
     displayComprehensiveAnalysis(analysis, aiResult.text, aiResult.tokens);
   } catch (error: any) {
     spinner.fail(`Failed to analyze ${symbol}`);
-    console.log(chalk.red(`\nError: ${error.message}`));
+    console.log("");
+    console.log(
+      chalk.red("  ╔═══════════════════════════════════════════════════════════════════════╗")
+    );
+    console.log(
+      chalk.red("  ║                      ❌ ANALYSIS ERROR                                ║")
+    );
+    console.log(
+      chalk.red("  ╚═══════════════════════════════════════════════════════════════════════╝")
+    );
+    console.log("");
+
+    if (error.message?.includes("Invalid symbol") || error.message?.includes("Failed to fetch")) {
+      console.log(chalk.yellow(`  ⚠️  Invalid symbol: "${symbol.toUpperCase()}"`));
+      console.log("");
+
+      // Get similar symbols from Binance
+      const suggestions = await findSimilarSymbols(symbol, 8);
+
+      if (suggestions.length > 0) {
+        console.log(chalk.gray("  Did you mean one of these?"));
+        console.log("");
+        console.log(chalk.cyan(`    ${suggestions.join(", ")}`));
+        console.log("");
+      }
+
+      console.log(chalk.gray("  The symbol you entered is not available on Binance."));
+      console.log(
+        chalk.gray("  You can use any valid Binance USDT pair (e.g., BTC, ETH, HYPE, WIF)")
+      );
+    } else {
+      console.log(chalk.yellow(`  ⚠️  ${error.message || "An unexpected error occurred"}`));
+    }
+    console.log("");
   }
 }
