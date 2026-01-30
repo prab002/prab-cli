@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StreamFormatter = exports.formatMarkdown = exports.showToolProgress = exports.showTodoList = exports.showDiff = exports.banner = exports.log = void 0;
+exports.StreamFormatter = exports.formatMarkdown = exports.showToolProgress = exports.showTodoList = exports.showDiff = exports.banner = exports.showTokenUsageCompact = exports.showTokenUsage = exports.log = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const diff_1 = require("diff");
 // Simple ASCII art letters for custom banners
@@ -500,6 +500,51 @@ exports.log = {
         console.log(formatted);
     },
 };
+/**
+ * Display token usage statistics with visual bar
+ */
+const showTokenUsage = (promptTokens, completionTokens, totalTokens, modelName) => {
+    const maxBarWidth = 30;
+    const maxTokensEstimate = 8000; // Rough estimate for visualization
+    // Calculate bar widths
+    const promptWidth = Math.min(Math.round((promptTokens / maxTokensEstimate) * maxBarWidth), maxBarWidth);
+    const completionWidth = Math.min(Math.round((completionTokens / maxTokensEstimate) * maxBarWidth), maxBarWidth);
+    // Create visual bars
+    const promptBar = chalk_1.default.cyan("█".repeat(promptWidth) + "░".repeat(Math.max(0, 15 - promptWidth)));
+    const completionBar = chalk_1.default.green("█".repeat(completionWidth) + "░".repeat(Math.max(0, 15 - completionWidth)));
+    // Format numbers with commas
+    const formatNum = (n) => n.toLocaleString();
+    console.log(chalk_1.default.gray("─".repeat(50)));
+    console.log(chalk_1.default.gray("📊 ") + chalk_1.default.bold.white("Token Usage"));
+    if (modelName) {
+        console.log(chalk_1.default.gray("   Model: ") + chalk_1.default.cyan(modelName));
+    }
+    console.log(chalk_1.default.gray("   Prompt:     ") +
+        promptBar +
+        chalk_1.default.gray(" ") +
+        chalk_1.default.cyan(formatNum(promptTokens).padStart(6)));
+    console.log(chalk_1.default.gray("   Completion: ") +
+        completionBar +
+        chalk_1.default.gray(" ") +
+        chalk_1.default.green(formatNum(completionTokens).padStart(6)));
+    console.log(chalk_1.default.gray("   ─────────────────────────────────"));
+    console.log(chalk_1.default.gray("   Total:      ") +
+        chalk_1.default.bold.yellow(formatNum(totalTokens).padStart(21)));
+    console.log(chalk_1.default.gray("─".repeat(50)));
+};
+exports.showTokenUsage = showTokenUsage;
+/**
+ * Display compact token usage (single line)
+ */
+const showTokenUsageCompact = (promptTokens, completionTokens, totalTokens) => {
+    console.log(chalk_1.default.gray("   📊 Tokens: ") +
+        chalk_1.default.cyan(`↑${promptTokens.toLocaleString()}`) +
+        chalk_1.default.gray(" + ") +
+        chalk_1.default.green(`↓${completionTokens.toLocaleString()}`) +
+        chalk_1.default.gray(" = ") +
+        chalk_1.default.yellow.bold(totalTokens.toLocaleString()));
+};
+exports.showTokenUsageCompact = showTokenUsageCompact;
 const banner = (modelName, toolCount, customization) => {
     const cliName = customization?.cliName || "Prab CLI";
     const userName = customization?.userName;

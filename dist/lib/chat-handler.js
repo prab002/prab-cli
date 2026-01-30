@@ -82,6 +82,10 @@ When you need to perform file operations, use the appropriate tools rather than 
                 let fullResponse = "";
                 let toolCalls = [];
                 const formatter = new ui_1.StreamFormatter();
+                // Track tokens for this specific request
+                let requestPromptTokens = 0;
+                let requestCompletionTokens = 0;
+                let requestTotalTokens = 0;
                 process.stdout.write("\n");
                 try {
                     for await (const chunk of stream) {
@@ -98,11 +102,22 @@ When you need to perform file operations, use the appropriate tools rather than 
                         if (chunk.tool_calls && chunk.tool_calls.length > 0) {
                             toolCalls = chunk.tool_calls;
                         }
-                        // Capture usage metadata from the chunk
+                        // Capture usage metadata from the chunk (LangChain uses different field names)
                         if (chunk.usage_metadata) {
-                            this.usage.promptTokens += chunk.usage_metadata.input_tokens || 0;
-                            this.usage.completionTokens += chunk.usage_metadata.output_tokens || 0;
-                            this.usage.totalTokens += chunk.usage_metadata.total_tokens || 0;
+                            requestPromptTokens = chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
+                            requestCompletionTokens = chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
+                            requestTotalTokens = chunk.usage_metadata.total_tokens || (requestPromptTokens + requestCompletionTokens);
+                            // Also update cumulative stats
+                            this.usage.promptTokens += requestPromptTokens;
+                            this.usage.completionTokens += requestCompletionTokens;
+                            this.usage.totalTokens += requestTotalTokens;
+                        }
+                        // Also check response_metadata (alternative LangChain format)
+                        if (chunk.response_metadata?.usage) {
+                            const usage = chunk.response_metadata.usage;
+                            requestPromptTokens = usage.prompt_tokens || usage.input_tokens || 0;
+                            requestCompletionTokens = usage.completion_tokens || usage.output_tokens || 0;
+                            requestTotalTokens = usage.total_tokens || (requestPromptTokens + requestCompletionTokens);
                         }
                     }
                     // Increment request count
@@ -120,7 +135,20 @@ When you need to perform file operations, use the appropriate tools rather than 
                     tracker_1.tracker.apiError(apiError.message, { stack: apiError.stack });
                     throw apiError;
                 }
-                process.stdout.write("\n\n");
+                process.stdout.write("\n");
+                // Estimate tokens if not provided by API (rough estimate: ~4 chars per token)
+                if (requestTotalTokens === 0 && fullResponse.length > 0) {
+                    // Estimate based on message content length
+                    const inputText = this.messages.map(m => typeof m.content === 'string' ? m.content : '').join(' ');
+                    requestPromptTokens = Math.ceil(inputText.length / 4);
+                    requestCompletionTokens = Math.ceil(fullResponse.length / 4);
+                    requestTotalTokens = requestPromptTokens + requestCompletionTokens;
+                }
+                // Show token usage for this request
+                if (requestTotalTokens > 0) {
+                    (0, ui_1.showTokenUsageCompact)(requestPromptTokens, requestCompletionTokens, requestTotalTokens);
+                }
+                process.stdout.write("\n");
                 // Log AI response if there's content
                 if (fullResponse.length > 0) {
                     tracker_1.tracker.aiResponse(fullResponse);

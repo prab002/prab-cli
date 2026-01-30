@@ -528,6 +528,81 @@ export const log = {
   },
 };
 
+/**
+ * Display token usage statistics with visual bar
+ */
+export const showTokenUsage = (
+  promptTokens: number,
+  completionTokens: number,
+  totalTokens: number,
+  modelName?: string
+) => {
+  const maxBarWidth = 30;
+  const maxTokensEstimate = 8000; // Rough estimate for visualization
+
+  // Calculate bar widths
+  const promptWidth = Math.min(
+    Math.round((promptTokens / maxTokensEstimate) * maxBarWidth),
+    maxBarWidth
+  );
+  const completionWidth = Math.min(
+    Math.round((completionTokens / maxTokensEstimate) * maxBarWidth),
+    maxBarWidth
+  );
+
+  // Create visual bars
+  const promptBar = chalk.cyan("█".repeat(promptWidth) + "░".repeat(Math.max(0, 15 - promptWidth)));
+  const completionBar = chalk.green(
+    "█".repeat(completionWidth) + "░".repeat(Math.max(0, 15 - completionWidth))
+  );
+
+  // Format numbers with commas
+  const formatNum = (n: number) => n.toLocaleString();
+
+  console.log(chalk.gray("─".repeat(50)));
+  console.log(chalk.gray("📊 ") + chalk.bold.white("Token Usage"));
+
+  if (modelName) {
+    console.log(chalk.gray("   Model: ") + chalk.cyan(modelName));
+  }
+
+  console.log(
+    chalk.gray("   Prompt:     ") +
+      promptBar +
+      chalk.gray(" ") +
+      chalk.cyan(formatNum(promptTokens).padStart(6))
+  );
+  console.log(
+    chalk.gray("   Completion: ") +
+      completionBar +
+      chalk.gray(" ") +
+      chalk.green(formatNum(completionTokens).padStart(6))
+  );
+  console.log(chalk.gray("   ─────────────────────────────────"));
+  console.log(
+    chalk.gray("   Total:      ") + chalk.bold.yellow(formatNum(totalTokens).padStart(21))
+  );
+  console.log(chalk.gray("─".repeat(50)));
+};
+
+/**
+ * Display compact token usage (single line)
+ */
+export const showTokenUsageCompact = (
+  promptTokens: number,
+  completionTokens: number,
+  totalTokens: number
+) => {
+  console.log(
+    chalk.gray("   📊 Tokens: ") +
+      chalk.cyan(`↑${promptTokens.toLocaleString()}`) +
+      chalk.gray(" + ") +
+      chalk.green(`↓${completionTokens.toLocaleString()}`) +
+      chalk.gray(" = ") +
+      chalk.yellow.bold(totalTokens.toLocaleString())
+  );
+};
+
 export const banner = (modelName?: string, toolCount?: number, customization?: Customization) => {
   const cliName = customization?.cliName || "Prab CLI";
   const userName = customization?.userName;

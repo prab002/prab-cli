@@ -20,13 +20,17 @@ const analyzer_1 = require("./analyzer");
 const market_analyzer_1 = require("./market-analyzer");
 const config_1 = require("../config");
 const groq_provider_1 = require("../models/groq-provider");
+const ui_1 = require("../ui");
 /**
  * Generate AI reasoning for the trading signal
  */
 async function generateAIReasoning(symbol, signal, price, priceChange24h) {
     const apiKey = (0, config_1.getApiKey)();
     if (!apiKey) {
-        return "AI reasoning unavailable (no API key configured)";
+        return {
+            text: "AI reasoning unavailable (no API key configured)",
+            tokens: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        };
     }
     const modelConfig = (0, config_1.getModelConfig)();
     const provider = new groq_provider_1.GroqProvider(modelConfig.modelId, 0.7);
@@ -50,6 +54,7 @@ Key Observations:
 ${signal.reasoning.map((r) => `- ${r}`).join("\n")}
 
 Provide a concise trading insight (2-3 sentences) explaining the signal and any cautions. Be direct and actionable.`;
+    const tokens = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     try {
         const stream = provider.streamChat([{ role: "user", content: prompt }], [] // No tools needed
         );
@@ -58,11 +63,32 @@ Provide a concise trading insight (2-3 sentences) explaining the signal and any 
             if (chunk.content && typeof chunk.content === "string") {
                 response += chunk.content;
             }
+            // Capture token usage (check multiple formats)
+            if (chunk.usage_metadata) {
+                tokens.promptTokens = chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
+                tokens.completionTokens = chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
+                tokens.totalTokens = chunk.usage_metadata.total_tokens || (tokens.promptTokens + tokens.completionTokens);
+            }
+            if (chunk.response_metadata?.usage) {
+                const usage = chunk.response_metadata.usage;
+                tokens.promptTokens = usage.prompt_tokens || usage.input_tokens || 0;
+                tokens.completionTokens = usage.completion_tokens || usage.output_tokens || 0;
+                tokens.totalTokens = usage.total_tokens || (tokens.promptTokens + tokens.completionTokens);
+            }
         }
-        return response.trim();
+        // Estimate tokens if not provided by API (rough estimate: ~4 chars per token)
+        if (tokens.totalTokens === 0 && response.length > 0) {
+            tokens.promptTokens = Math.ceil(prompt.length / 4);
+            tokens.completionTokens = Math.ceil(response.length / 4);
+            tokens.totalTokens = tokens.promptTokens + tokens.completionTokens;
+        }
+        return { text: response.trim(), tokens };
     }
     catch (error) {
-        return `AI reasoning unavailable: ${error.message}`;
+        return {
+            text: `AI reasoning unavailable: ${error.message}`,
+            tokens,
+        };
     }
 }
 /**
@@ -78,10 +104,13 @@ async function generateTradingSignal(symbol, interval = "1h", includeAI = true) 
         const signal = (0, analyzer_1.generateSignal)(data);
         spinner.text = "Generating trading signal...";
         let aiReasoning;
+        let tokenUsage;
         // Generate AI reasoning if requested
         if (includeAI) {
             spinner.text = "Getting AI insights...";
-            aiReasoning = await generateAIReasoning(data.symbol, signal, data.currentPrice, data.priceChangePercent24h);
+            const aiResult = await generateAIReasoning(data.symbol, signal, data.currentPrice, data.priceChangePercent24h);
+            aiReasoning = aiResult.text;
+            tokenUsage = aiResult.tokens;
         }
         spinner.succeed(`Analysis complete for ${data.symbol}`);
         return {
@@ -91,6 +120,7 @@ async function generateTradingSignal(symbol, interval = "1h", includeAI = true) 
             aiReasoning,
             price: data.currentPrice,
             priceChange24h: data.priceChangePercent24h,
+            tokenUsage,
         };
     }
     catch (error) {
@@ -212,6 +242,10 @@ function displaySignal(result) {
     }
     // Footer
     console.log(chalk_1.default.cyan("\u{2514}" + "\u{2500}".repeat(45) + "\u{2518}"));
+    // Token usage
+    if (result.tokenUsage && result.tokenUsage.totalTokens > 0) {
+        (0, ui_1.showTokenUsageCompact)(result.tokenUsage.promptTokens, result.tokenUsage.completionTokens, result.tokenUsage.totalTokens);
+    }
     // Disclaimer
     console.log("");
     console.log(chalk_1.default.gray.italic("  \u{26A0}\u{FE0F}  This is not financial advice. Always do your own research."));
@@ -240,7 +274,10 @@ async function fullSignal(symbol, interval = "1h") {
 async function generateComprehensiveAIAnalysis(analysis) {
     const apiKey = (0, config_1.getApiKey)();
     if (!apiKey) {
-        return "AI analysis unavailable (no API key configured)";
+        return {
+            text: "AI analysis unavailable (no API key configured)",
+            tokens: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        };
     }
     const modelConfig = (0, config_1.getModelConfig)();
     const provider = new groq_provider_1.GroqProvider(modelConfig.modelId, 0.7);
@@ -307,6 +344,7 @@ Provide a detailed trading analysis (4-6 sentences) that:
 3. Mentions specific price levels to watch
 4. Highlights any risks or cautions
 Be specific with prices and actionable advice.`;
+    const tokens = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     try {
         const stream = provider.streamChat([{ role: "user", content: prompt }], []);
         let response = "";
@@ -314,11 +352,29 @@ Be specific with prices and actionable advice.`;
             if (chunk.content && typeof chunk.content === "string") {
                 response += chunk.content;
             }
+            // Capture token usage (check multiple formats)
+            if (chunk.usage_metadata) {
+                tokens.promptTokens = chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
+                tokens.completionTokens = chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
+                tokens.totalTokens = chunk.usage_metadata.total_tokens || (tokens.promptTokens + tokens.completionTokens);
+            }
+            if (chunk.response_metadata?.usage) {
+                const usage = chunk.response_metadata.usage;
+                tokens.promptTokens = usage.prompt_tokens || usage.input_tokens || 0;
+                tokens.completionTokens = usage.completion_tokens || usage.output_tokens || 0;
+                tokens.totalTokens = usage.total_tokens || (tokens.promptTokens + tokens.completionTokens);
+            }
         }
-        return response.trim();
+        // Estimate tokens if not provided by API (rough estimate: ~4 chars per token)
+        if (tokens.totalTokens === 0 && response.length > 0) {
+            tokens.promptTokens = Math.ceil(prompt.length / 4);
+            tokens.completionTokens = Math.ceil(response.length / 4);
+            tokens.totalTokens = tokens.promptTokens + tokens.completionTokens;
+        }
+        return { text: response.trim(), tokens };
     }
     catch (error) {
-        return `AI analysis unavailable: ${error.message}`;
+        return { text: `AI analysis unavailable: ${error.message}`, tokens };
     }
 }
 /**
@@ -357,7 +413,7 @@ function wordWrap(text, maxWidth) {
 /**
  * Display comprehensive analysis in terminal
  */
-function displayComprehensiveAnalysis(analysis, aiAnalysis) {
+function displayComprehensiveAnalysis(analysis, aiAnalysis, tokenUsage) {
     const boxWidth = 55;
     const contentWidth = boxWidth - 4;
     const border = {
@@ -535,6 +591,10 @@ function displayComprehensiveAnalysis(analysis, aiAnalysis) {
     }
     // Footer
     console.log(border.bot);
+    // Token usage
+    if (tokenUsage && tokenUsage.totalTokens > 0) {
+        (0, ui_1.showTokenUsageCompact)(tokenUsage.promptTokens, tokenUsage.completionTokens, tokenUsage.totalTokens);
+    }
     console.log("");
     console.log(chalk_1.default.gray.italic("  \u{26A0}\u{FE0F}  This is not financial advice. Always do your own research."));
     console.log("");
@@ -548,9 +608,9 @@ async function comprehensiveAnalysis(symbol) {
         spinner.text = "Fetching 1H, 4H, and 1D data...";
         const analysis = await (0, market_analyzer_1.analyzeMarket)(symbol);
         spinner.text = "Generating AI insights...";
-        const aiAnalysis = await generateComprehensiveAIAnalysis(analysis);
+        const aiResult = await generateComprehensiveAIAnalysis(analysis);
         spinner.succeed(`Comprehensive analysis complete for ${analysis.symbol}`);
-        displayComprehensiveAnalysis(analysis, aiAnalysis);
+        displayComprehensiveAnalysis(analysis, aiResult.text, aiResult.tokens);
     }
     catch (error) {
         spinner.fail(`Failed to analyze ${symbol}`);

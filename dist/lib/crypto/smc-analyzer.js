@@ -15,6 +15,7 @@ const data_fetcher_1 = require("./data-fetcher");
 const smc_indicators_1 = require("./smc-indicators");
 const config_1 = require("../config");
 const groq_provider_1 = require("../models/groq-provider");
+const ui_1 = require("../ui");
 const chart_visual_1 = require("./chart-visual");
 // ============================================
 // TRADE SETUP GENERATION
@@ -121,8 +122,12 @@ function generateSMCTradeSetup(smc, currentPrice) {
 // ============================================
 async function generateSMCAIAnalysis(analysis) {
     const apiKey = (0, config_1.getApiKey)();
-    if (!apiKey)
-        return "AI analysis unavailable (no API key configured)";
+    if (!apiKey) {
+        return {
+            text: "AI analysis unavailable (no API key configured)",
+            tokens: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        };
+    }
     const modelConfig = (0, config_1.getModelConfig)();
     const provider = new groq_provider_1.GroqProvider(modelConfig.modelId, 0.7);
     provider.initialize(apiKey, modelConfig.modelId);
@@ -173,6 +178,7 @@ Provide SMC-focused analysis explaining:
 3. Best entry strategy (order block, FVG, or liquidity sweep)
 4. Key levels to watch and when to enter
 Be specific with prices and SMC terminology.`;
+    const tokens = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     try {
         const stream = provider.streamChat([{ role: "user", content: prompt }], []);
         let response = "";
@@ -180,11 +186,29 @@ Be specific with prices and SMC terminology.`;
             if (chunk.content && typeof chunk.content === "string") {
                 response += chunk.content;
             }
+            // Capture token usage (check multiple formats)
+            if (chunk.usage_metadata) {
+                tokens.promptTokens = chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
+                tokens.completionTokens = chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
+                tokens.totalTokens = chunk.usage_metadata.total_tokens || (tokens.promptTokens + tokens.completionTokens);
+            }
+            if (chunk.response_metadata?.usage) {
+                const usage = chunk.response_metadata.usage;
+                tokens.promptTokens = usage.prompt_tokens || usage.input_tokens || 0;
+                tokens.completionTokens = usage.completion_tokens || usage.output_tokens || 0;
+                tokens.totalTokens = usage.total_tokens || (tokens.promptTokens + tokens.completionTokens);
+            }
         }
-        return response.trim();
+        // Estimate tokens if not provided by API (rough estimate: ~4 chars per token)
+        if (tokens.totalTokens === 0 && response.length > 0) {
+            tokens.promptTokens = Math.ceil(prompt.length / 4);
+            tokens.completionTokens = Math.ceil(response.length / 4);
+            tokens.totalTokens = tokens.promptTokens + tokens.completionTokens;
+        }
+        return { text: response.trim(), tokens };
     }
     catch (error) {
-        return `AI analysis unavailable: ${error.message}`;
+        return { text: `AI analysis unavailable: ${error.message}`, tokens };
     }
 }
 // ============================================
@@ -216,7 +240,7 @@ function wordWrap(text, maxWidth) {
         lines.push(currentLine.trim());
     return lines;
 }
-function displaySMCAnalysis(analysis, aiAnalysis) {
+function displaySMCAnalysis(analysis, aiAnalysis, tokenUsage) {
     const boxWidth = 58;
     const contentWidth = boxWidth - 4;
     const border = {
@@ -351,13 +375,20 @@ function displaySMCAnalysis(analysis, aiAnalysis) {
     // Price Candlestick Chart (if candles available)
     if (analysis.candles && analysis.candles.length > 0) {
         console.log(chalk_1.default.bold.white("  ┌─────────────────────────────────────────────┐"));
-        console.log(chalk_1.default.bold.white("  │") + chalk_1.default.bold.yellow("           PRICE ACTION (Last 50 Candles)    ") + chalk_1.default.bold.white("│"));
+        console.log(chalk_1.default.bold.white("  │") +
+            chalk_1.default.bold.yellow("           PRICE ACTION (Last 50 Candles)    ") +
+            chalk_1.default.bold.white("│"));
         console.log(chalk_1.default.bold.white("  └─────────────────────────────────────────────┘"));
         console.log("");
         const candleChart = (0, chart_visual_1.createCandlestickChart)(analysis.candles, 45, 12);
         candleChart.forEach((l) => console.log("    " + l));
         console.log(chalk_1.default.gray("    └" + "─".repeat(45) + "┘"));
-        console.log(chalk_1.default.gray("     " + chalk_1.default.green("█ Bullish") + "  " + chalk_1.default.red("░ Bearish") + "  " + chalk_1.default.gray("│ Wick")));
+        console.log(chalk_1.default.gray("     " +
+            chalk_1.default.green("█ Bullish") +
+            "  " +
+            chalk_1.default.red("░ Bearish") +
+            "  " +
+            chalk_1.default.gray("│ Wick")));
         console.log("");
     }
     // Order Block Visual
@@ -373,6 +404,11 @@ function displaySMCAnalysis(analysis, aiAnalysis) {
     console.log("");
     const smcChart = (0, chart_visual_1.createSMCVisualChart)(currentPrice, smc, tradeSetup);
     smcChart.forEach((l) => console.log(l));
+    // Token usage
+    if (tokenUsage && tokenUsage.totalTokens > 0) {
+        console.log("");
+        (0, ui_1.showTokenUsageCompact)(tokenUsage.promptTokens, tokenUsage.completionTokens, tokenUsage.totalTokens);
+    }
     console.log("");
     console.log(chalk_1.default.gray.italic("  \u{26A0}\u{FE0F}  This is not financial advice. Always do your own research."));
     console.log("");
@@ -400,9 +436,9 @@ async function runSMCAnalysis(symbol) {
             candles: data.candles,
         };
         spinner.text = "Getting AI insights...";
-        const aiAnalysis = await generateSMCAIAnalysis(analysis);
+        const aiResult = await generateSMCAIAnalysis(analysis);
         spinner.succeed(`SMC analysis complete for ${data.symbol}`);
-        displaySMCAnalysis(analysis, aiAnalysis);
+        displaySMCAnalysis(analysis, aiResult.text, aiResult.tokens);
     }
     catch (error) {
         spinner.fail(`Failed to analyze ${symbol}`);

@@ -10,6 +10,14 @@ import { generateSignal, TradingSignal } from "./analyzer";
 import { analyzeMarket, ComprehensiveAnalysis } from "./market-analyzer";
 import { getApiKey, getModelConfig } from "../config";
 import { GroqProvider } from "../models/groq-provider";
+import { showTokenUsageCompact } from "../ui";
+
+// Token usage tracking
+interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
 
 export interface SignalResult {
   success: boolean;
@@ -19,6 +27,7 @@ export interface SignalResult {
   error?: string;
   price?: number;
   priceChange24h?: number;
+  tokenUsage?: TokenUsage;
 }
 
 /**
@@ -29,10 +38,13 @@ async function generateAIReasoning(
   signal: TradingSignal,
   price: number,
   priceChange24h: number
-): Promise<string> {
+): Promise<{ text: string; tokens: TokenUsage }> {
   const apiKey = getApiKey();
   if (!apiKey) {
-    return "AI reasoning unavailable (no API key configured)";
+    return {
+      text: "AI reasoning unavailable (no API key configured)",
+      tokens: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    };
   }
 
   const modelConfig = getModelConfig();
@@ -59,6 +71,8 @@ ${signal.reasoning.map((r) => `- ${r}`).join("\n")}
 
 Provide a concise trading insight (2-3 sentences) explaining the signal and any cautions. Be direct and actionable.`;
 
+  const tokens: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+
   try {
     const stream = provider.streamChat(
       [{ role: "user", content: prompt }] as any,
@@ -70,11 +84,36 @@ Provide a concise trading insight (2-3 sentences) explaining the signal and any 
       if (chunk.content && typeof chunk.content === "string") {
         response += chunk.content;
       }
+      // Capture token usage (check multiple formats)
+      if (chunk.usage_metadata) {
+        tokens.promptTokens =
+          chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
+        tokens.completionTokens =
+          chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
+        tokens.totalTokens =
+          chunk.usage_metadata.total_tokens || tokens.promptTokens + tokens.completionTokens;
+      }
+      if (chunk.response_metadata?.usage) {
+        const usage = chunk.response_metadata.usage;
+        tokens.promptTokens = usage.prompt_tokens || usage.input_tokens || 0;
+        tokens.completionTokens = usage.completion_tokens || usage.output_tokens || 0;
+        tokens.totalTokens = usage.total_tokens || tokens.promptTokens + tokens.completionTokens;
+      }
     }
 
-    return response.trim();
+    // Estimate tokens if not provided by API (rough estimate: ~4 chars per token)
+    if (tokens.totalTokens === 0 && response.length > 0) {
+      tokens.promptTokens = Math.ceil(prompt.length / 4);
+      tokens.completionTokens = Math.ceil(response.length / 4);
+      tokens.totalTokens = tokens.promptTokens + tokens.completionTokens;
+    }
+
+    return { text: response.trim(), tokens };
   } catch (error: any) {
-    return `AI reasoning unavailable: ${error.message}`;
+    return {
+      text: `AI reasoning unavailable: ${error.message}`,
+      tokens,
+    };
   }
 }
 
@@ -98,16 +137,19 @@ export async function generateTradingSignal(
     spinner.text = "Generating trading signal...";
 
     let aiReasoning: string | undefined;
+    let tokenUsage: TokenUsage | undefined;
 
     // Generate AI reasoning if requested
     if (includeAI) {
       spinner.text = "Getting AI insights...";
-      aiReasoning = await generateAIReasoning(
+      const aiResult = await generateAIReasoning(
         data.symbol,
         signal,
         data.currentPrice,
         data.priceChangePercent24h
       );
+      aiReasoning = aiResult.text;
+      tokenUsage = aiResult.tokens;
     }
 
     spinner.succeed(`Analysis complete for ${data.symbol}`);
@@ -119,6 +161,7 @@ export async function generateTradingSignal(
       aiReasoning,
       price: data.currentPrice,
       priceChange24h: data.priceChangePercent24h,
+      tokenUsage,
     };
   } catch (error: any) {
     spinner.fail(`Failed to analyze ${symbol}`);
@@ -290,6 +333,15 @@ export function displaySignal(result: SignalResult): void {
   // Footer
   console.log(chalk.cyan("\u{2514}" + "\u{2500}".repeat(45) + "\u{2518}"));
 
+  // Token usage
+  if (result.tokenUsage && result.tokenUsage.totalTokens > 0) {
+    showTokenUsageCompact(
+      result.tokenUsage.promptTokens,
+      result.tokenUsage.completionTokens,
+      result.tokenUsage.totalTokens
+    );
+  }
+
   // Disclaimer
   console.log("");
   console.log(
@@ -323,10 +375,15 @@ export async function fullSignal(symbol: string, interval: TimeInterval = "1h"):
 /**
  * Generate AI analysis for comprehensive market data
  */
-async function generateComprehensiveAIAnalysis(analysis: ComprehensiveAnalysis): Promise<string> {
+async function generateComprehensiveAIAnalysis(
+  analysis: ComprehensiveAnalysis
+): Promise<{ text: string; tokens: TokenUsage }> {
   const apiKey = getApiKey();
   if (!apiKey) {
-    return "AI analysis unavailable (no API key configured)";
+    return {
+      text: "AI analysis unavailable (no API key configured)",
+      tokens: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    };
   }
 
   const modelConfig = getModelConfig();
@@ -396,6 +453,8 @@ Provide a detailed trading analysis (4-6 sentences) that:
 4. Highlights any risks or cautions
 Be specific with prices and actionable advice.`;
 
+  const tokens: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+
   try {
     const stream = provider.streamChat([{ role: "user", content: prompt }] as any, []);
 
@@ -404,11 +463,33 @@ Be specific with prices and actionable advice.`;
       if (chunk.content && typeof chunk.content === "string") {
         response += chunk.content;
       }
+      // Capture token usage (check multiple formats)
+      if (chunk.usage_metadata) {
+        tokens.promptTokens =
+          chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
+        tokens.completionTokens =
+          chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
+        tokens.totalTokens =
+          chunk.usage_metadata.total_tokens || tokens.promptTokens + tokens.completionTokens;
+      }
+      if (chunk.response_metadata?.usage) {
+        const usage = chunk.response_metadata.usage;
+        tokens.promptTokens = usage.prompt_tokens || usage.input_tokens || 0;
+        tokens.completionTokens = usage.completion_tokens || usage.output_tokens || 0;
+        tokens.totalTokens = usage.total_tokens || tokens.promptTokens + tokens.completionTokens;
+      }
     }
 
-    return response.trim();
+    // Estimate tokens if not provided by API (rough estimate: ~4 chars per token)
+    if (tokens.totalTokens === 0 && response.length > 0) {
+      tokens.promptTokens = Math.ceil(prompt.length / 4);
+      tokens.completionTokens = Math.ceil(response.length / 4);
+      tokens.totalTokens = tokens.promptTokens + tokens.completionTokens;
+    }
+
+    return { text: response.trim(), tokens };
   } catch (error: any) {
-    return `AI analysis unavailable: ${error.message}`;
+    return { text: `AI analysis unavailable: ${error.message}`, tokens };
   }
 }
 
@@ -450,7 +531,8 @@ function wordWrap(text: string, maxWidth: number): string[] {
  */
 export function displayComprehensiveAnalysis(
   analysis: ComprehensiveAnalysis,
-  aiAnalysis?: string
+  aiAnalysis?: string,
+  tokenUsage?: TokenUsage
 ): void {
   const boxWidth = 55;
   const contentWidth = boxWidth - 4;
@@ -710,6 +792,15 @@ export function displayComprehensiveAnalysis(
   // Footer
   console.log(border.bot);
 
+  // Token usage
+  if (tokenUsage && tokenUsage.totalTokens > 0) {
+    showTokenUsageCompact(
+      tokenUsage.promptTokens,
+      tokenUsage.completionTokens,
+      tokenUsage.totalTokens
+    );
+  }
+
   console.log("");
   console.log(
     chalk.gray.italic(
@@ -730,11 +821,11 @@ export async function comprehensiveAnalysis(symbol: string): Promise<void> {
     const analysis = await analyzeMarket(symbol);
 
     spinner.text = "Generating AI insights...";
-    const aiAnalysis = await generateComprehensiveAIAnalysis(analysis);
+    const aiResult = await generateComprehensiveAIAnalysis(analysis);
 
     spinner.succeed(`Comprehensive analysis complete for ${analysis.symbol}`);
 
-    displayComprehensiveAnalysis(analysis, aiAnalysis);
+    displayComprehensiveAnalysis(analysis, aiResult.text, aiResult.tokens);
   } catch (error: any) {
     spinner.fail(`Failed to analyze ${symbol}`);
     console.log(chalk.red(`\nError: ${error.message}`));
