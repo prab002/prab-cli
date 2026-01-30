@@ -85,3 +85,17 @@ export {
   type FullSMCAnalysis,
   type SMCTradeSetup,
 } from "./smc-analyzer";
+
+export {
+  runWhaleTracker,
+  displayWhaleActivity,
+  type WhaleTransaction,
+  type WhaleActivitySummary,
+} from "./whale-tracker";
+
+export {
+  runMarketScanner,
+  displayScanResults,
+  type CryptoOpportunity,
+  type ScanResult,
+} from "./market-scanner";

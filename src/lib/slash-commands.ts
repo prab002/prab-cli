@@ -28,6 +28,18 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     action: "signal",
   },
   {
+    name: "/whale",
+    description: "Track whale activity (large BTC/ETH transactions)",
+    shortcut: "w",
+    action: "whale",
+  },
+  {
+    name: "/scan",
+    description: "Scan market for best trading opportunities",
+    shortcut: "sc",
+    action: "scan",
+  },
+  {
     name: "/model",
     description: "Switch between available AI models",
     shortcut: "m",

@@ -48,6 +48,8 @@ import {
   fullSignal,
   comprehensiveAnalysis,
   runSMCAnalysis,
+  runWhaleTracker,
+  runMarketScanner,
   getSupportedSymbols,
   TimeInterval,
 } from "./lib/crypto";
@@ -156,6 +158,28 @@ program
     }
     console.log("\nYou can also use any Binance trading pair (e.g., BTCUSDT, ETHBTC)");
     console.log("");
+  });
+
+// Whale activity tracker
+program
+  .command("whale")
+  .description("Track whale activity (large BTC/ETH transactions)")
+  .option("-c, --coins <coins>", "Coins to track (comma-separated)", "BTC,ETH")
+  .action(async (options: { coins: string }) => {
+    const coins = options.coins.split(",").map((c) => c.trim().toUpperCase());
+    await runWhaleTracker(coins);
+  });
+
+// Market scanner for opportunities
+program
+  .command("scan")
+  .description("Scan market for best trading opportunities")
+  .option("-l, --limit <number>", "Number of cryptos to scan (max 100)", "50")
+  .option("-m, --min-score <number>", "Minimum score to display", "50")
+  .action(async (options: { limit: string; minScore: string }) => {
+    const limit = Math.min(parseInt(options.limit) || 50, 100);
+    const minScore = parseInt(options.minScore) || 50;
+    await runMarketScanner(limit, minScore);
   });
 
 // Model management commands
@@ -364,6 +388,37 @@ program.action(async () => {
           });
 
           await fullSignal(cryptoSymbol, intervalChoice as TimeInterval);
+          break;
+        }
+
+        case "whale": {
+          // Prompt for coins to track
+          const { coins } = await inquirer.prompt([
+            {
+              type: "input",
+              name: "coins",
+              message: "Enter coins to track (comma-separated):",
+              default: "BTC,ETH",
+            },
+          ]);
+
+          const coinList = coins.split(",").map((c: string) => c.trim().toUpperCase());
+          await runWhaleTracker(coinList);
+          break;
+        }
+
+        case "scan": {
+          // Prompt for scan options
+          const scanLimit = await select({
+            message: "How many cryptocurrencies to scan?",
+            choices: [
+              { name: "Top 20 (Quick)", value: 20 },
+              { name: "Top 50 (Recommended)", value: 50 },
+              { name: "Top 100 (Comprehensive)", value: 100 },
+            ],
+          });
+
+          await runMarketScanner(scanLimit as number, 50);
           break;
         }
 

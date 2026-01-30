@@ -104,9 +104,12 @@ When you need to perform file operations, use the appropriate tools rather than 
                         }
                         // Capture usage metadata from the chunk (LangChain uses different field names)
                         if (chunk.usage_metadata) {
-                            requestPromptTokens = chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
-                            requestCompletionTokens = chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
-                            requestTotalTokens = chunk.usage_metadata.total_tokens || (requestPromptTokens + requestCompletionTokens);
+                            requestPromptTokens =
+                                chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
+                            requestCompletionTokens =
+                                chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
+                            requestTotalTokens =
+                                chunk.usage_metadata.total_tokens || requestPromptTokens + requestCompletionTokens;
                             // Also update cumulative stats
                             this.usage.promptTokens += requestPromptTokens;
                             this.usage.completionTokens += requestCompletionTokens;
@@ -117,7 +120,8 @@ When you need to perform file operations, use the appropriate tools rather than 
                             const usage = chunk.response_metadata.usage;
                             requestPromptTokens = usage.prompt_tokens || usage.input_tokens || 0;
                             requestCompletionTokens = usage.completion_tokens || usage.output_tokens || 0;
-                            requestTotalTokens = usage.total_tokens || (requestPromptTokens + requestCompletionTokens);
+                            requestTotalTokens =
+                                usage.total_tokens || requestPromptTokens + requestCompletionTokens;
                         }
                     }
                     // Increment request count
@@ -139,7 +143,9 @@ When you need to perform file operations, use the appropriate tools rather than 
                 // Estimate tokens if not provided by API (rough estimate: ~4 chars per token)
                 if (requestTotalTokens === 0 && fullResponse.length > 0) {
                     // Estimate based on message content length
-                    const inputText = this.messages.map(m => typeof m.content === 'string' ? m.content : '').join(' ');
+                    const inputText = this.messages
+                        .map((m) => (typeof m.content === "string" ? m.content : ""))
+                        .join(" ");
                     requestPromptTokens = Math.ceil(inputText.length / 4);
                     requestCompletionTokens = Math.ceil(fullResponse.length / 4);
                     requestTotalTokens = requestPromptTokens + requestCompletionTokens;

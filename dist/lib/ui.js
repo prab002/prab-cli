@@ -528,8 +528,7 @@ const showTokenUsage = (promptTokens, completionTokens, totalTokens, modelName) 
         chalk_1.default.gray(" ") +
         chalk_1.default.green(formatNum(completionTokens).padStart(6)));
     console.log(chalk_1.default.gray("   ─────────────────────────────────"));
-    console.log(chalk_1.default.gray("   Total:      ") +
-        chalk_1.default.bold.yellow(formatNum(totalTokens).padStart(21)));
+    console.log(chalk_1.default.gray("   Total:      ") + chalk_1.default.bold.yellow(formatNum(totalTokens).padStart(21)));
     console.log(chalk_1.default.gray("─".repeat(50)));
 };
 exports.showTokenUsage = showTokenUsage;

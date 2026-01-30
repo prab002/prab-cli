@@ -144,6 +144,26 @@ program
     console.log("\nYou can also use any Binance trading pair (e.g., BTCUSDT, ETHBTC)");
     console.log("");
 });
+// Whale activity tracker
+program
+    .command("whale")
+    .description("Track whale activity (large BTC/ETH transactions)")
+    .option("-c, --coins <coins>", "Coins to track (comma-separated)", "BTC,ETH")
+    .action(async (options) => {
+    const coins = options.coins.split(",").map((c) => c.trim().toUpperCase());
+    await (0, crypto_1.runWhaleTracker)(coins);
+});
+// Market scanner for opportunities
+program
+    .command("scan")
+    .description("Scan market for best trading opportunities")
+    .option("-l, --limit <number>", "Number of cryptos to scan (max 100)", "50")
+    .option("-m, --min-score <number>", "Minimum score to display", "50")
+    .action(async (options) => {
+    const limit = Math.min(parseInt(options.limit) || 50, 100);
+    const minScore = parseInt(options.minScore) || 50;
+    await (0, crypto_1.runMarketScanner)(limit, minScore);
+});
 // Model management commands
 program
     .command("model")
@@ -332,6 +352,33 @@ program.action(async () => {
                         ],
                     });
                     await (0, crypto_1.fullSignal)(cryptoSymbol, intervalChoice);
+                    break;
+                }
+                case "whale": {
+                    // Prompt for coins to track
+                    const { coins } = await inquirer_1.default.prompt([
+                        {
+                            type: "input",
+                            name: "coins",
+                            message: "Enter coins to track (comma-separated):",
+                            default: "BTC,ETH",
+                        },
+                    ]);
+                    const coinList = coins.split(",").map((c) => c.trim().toUpperCase());
+                    await (0, crypto_1.runWhaleTracker)(coinList);
+                    break;
+                }
+                case "scan": {
+                    // Prompt for scan options
+                    const scanLimit = await (0, select_1.default)({
+                        message: "How many cryptocurrencies to scan?",
+                        choices: [
+                            { name: "Top 20 (Quick)", value: 20 },
+                            { name: "Top 50 (Recommended)", value: 50 },
+                            { name: "Top 100 (Comprehensive)", value: 100 },
+                        ],
+                    });
+                    await (0, crypto_1.runMarketScanner)(scanLimit, 50);
                     break;
                 }
                 case "model": {

@@ -65,15 +65,18 @@ Provide a concise trading insight (2-3 sentences) explaining the signal and any 
             }
             // Capture token usage (check multiple formats)
             if (chunk.usage_metadata) {
-                tokens.promptTokens = chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
-                tokens.completionTokens = chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
-                tokens.totalTokens = chunk.usage_metadata.total_tokens || (tokens.promptTokens + tokens.completionTokens);
+                tokens.promptTokens =
+                    chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
+                tokens.completionTokens =
+                    chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
+                tokens.totalTokens =
+                    chunk.usage_metadata.total_tokens || tokens.promptTokens + tokens.completionTokens;
             }
             if (chunk.response_metadata?.usage) {
                 const usage = chunk.response_metadata.usage;
                 tokens.promptTokens = usage.prompt_tokens || usage.input_tokens || 0;
                 tokens.completionTokens = usage.completion_tokens || usage.output_tokens || 0;
-                tokens.totalTokens = usage.total_tokens || (tokens.promptTokens + tokens.completionTokens);
+                tokens.totalTokens = usage.total_tokens || tokens.promptTokens + tokens.completionTokens;
             }
         }
         // Estimate tokens if not provided by API (rough estimate: ~4 chars per token)
@@ -354,15 +357,18 @@ Be specific with prices and actionable advice.`;
             }
             // Capture token usage (check multiple formats)
             if (chunk.usage_metadata) {
-                tokens.promptTokens = chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
-                tokens.completionTokens = chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
-                tokens.totalTokens = chunk.usage_metadata.total_tokens || (tokens.promptTokens + tokens.completionTokens);
+                tokens.promptTokens =
+                    chunk.usage_metadata.input_tokens || chunk.usage_metadata.prompt_tokens || 0;
+                tokens.completionTokens =
+                    chunk.usage_metadata.output_tokens || chunk.usage_metadata.completion_tokens || 0;
+                tokens.totalTokens =
+                    chunk.usage_metadata.total_tokens || tokens.promptTokens + tokens.completionTokens;
             }
             if (chunk.response_metadata?.usage) {
                 const usage = chunk.response_metadata.usage;
                 tokens.promptTokens = usage.prompt_tokens || usage.input_tokens || 0;
                 tokens.completionTokens = usage.completion_tokens || usage.output_tokens || 0;
-                tokens.totalTokens = usage.total_tokens || (tokens.promptTokens + tokens.completionTokens);
+                tokens.totalTokens = usage.total_tokens || tokens.promptTokens + tokens.completionTokens;
             }
         }
         // Estimate tokens if not provided by API (rough estimate: ~4 chars per token)
