@@ -50,6 +50,7 @@ import {
   runSMCAnalysis,
   runWhaleTracker,
   runMarketScanner,
+  runCryptoNews,
   getSupportedSymbols,
   TimeInterval,
 } from "./lib/crypto";
@@ -180,6 +181,15 @@ program
     const limit = Math.min(parseInt(options.limit) || 50, 100);
     const minScore = parseInt(options.minScore) || 50;
     await runMarketScanner(limit, minScore);
+  });
+
+// Crypto news fetcher
+program
+  .command("news")
+  .description("Get latest cryptocurrency news and updates")
+  .option("-c, --coin <coin>", "Filter news by specific coin (e.g., btc, eth)")
+  .action(async (options: { coin?: string }) => {
+    await runCryptoNews(options.coin);
   });
 
 // Model management commands
@@ -419,6 +429,37 @@ program.action(async () => {
           });
 
           await runMarketScanner(scanLimit as number, 50);
+          break;
+        }
+
+        case "news": {
+          // Prompt for optional coin filter
+          const newsFilterChoice = await select({
+            message: "Filter news by coin?",
+            choices: [
+              { name: "All Crypto News", value: "" },
+              { name: "Bitcoin (BTC)", value: "BTC" },
+              { name: "Ethereum (ETH)", value: "ETH" },
+              { name: "Solana (SOL)", value: "SOL" },
+              { name: "Other (specify)", value: "__other__" },
+            ],
+          });
+
+          let coinFilter: string | undefined;
+          if (newsFilterChoice === "__other__") {
+            const { customCoin } = await inquirer.prompt([
+              {
+                type: "input",
+                name: "customCoin",
+                message: "Enter coin symbol (e.g., XRP, ADA, DOGE):",
+              },
+            ]);
+            coinFilter = customCoin.trim().toUpperCase() || undefined;
+          } else if (newsFilterChoice) {
+            coinFilter = newsFilterChoice;
+          }
+
+          await runCryptoNews(coinFilter);
           break;
         }
 

@@ -99,3 +99,11 @@ export {
   type CryptoOpportunity,
   type ScanResult,
 } from "./market-scanner";
+
+export {
+  runCryptoNews,
+  fetchCryptoNews,
+  displayNews,
+  type CryptoNews,
+  type NewsResult,
+} from "./news-fetcher";

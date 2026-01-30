@@ -40,6 +40,12 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     action: "scan",
   },
   {
+    name: "/news",
+    description: "Get latest cryptocurrency news and updates",
+    shortcut: "n",
+    action: "news",
+  },
+  {
     name: "/model",
     description: "Switch between available AI models",
     shortcut: "m",
