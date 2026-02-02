@@ -1,0 +1,219 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0f;
+  --foreground: #ededed;
+  --card-bg: rgba(20, 20, 30, 0.8);
+  --border-glow: rgba(100, 200, 255, 0.2);
+  --success: #00ff88;
+  --danger: #ff4466;
+  --warning: #ffaa00;
+  --accent: #7c3aed;
+  --accent-light: #a78bfa;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 200, 255, 0.3) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(100, 200, 255, 0.3);
+  border-radius: 3px;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+
+/* Animated gradient background */
+.gradient-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(0, 200, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(255, 0, 128, 0.05) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0a0f 0%, #0f0f1a 100%);
+  animation: gradientShift 15s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 0%, 100% 100%, 50% 50%, 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%, 0% 0%, 50% 50%, 0% 0%;
+  }
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(15, 15, 25, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(100, 200, 255, 0.1);
+  border-radius: 16px;
+  box-shadow:
+    0 4px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.glass-card:hover {
+  border-color: rgba(100, 200, 255, 0.2);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(100, 200, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Glowing text */
+.glow-text {
+  text-shadow: 0 0 20px rgba(100, 200, 255, 0.5), 0 0 40px rgba(100, 200, 255, 0.3);
+}
+
+.glow-success {
+  text-shadow: 0 0 20px rgba(0, 255, 136, 0.5), 0 0 40px rgba(0, 255, 136, 0.3);
+}
+
+.glow-danger {
+  text-shadow: 0 0 20px rgba(255, 68, 102, 0.5), 0 0 40px rgba(255, 68, 102, 0.3);
+}
+
+/* Signal badges */
+.signal-buy {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 200, 100, 0.1) 100%);
+  border: 1px solid rgba(0, 255, 136, 0.5);
+  color: #00ff88;
+}
+
+.signal-sell {
+  background: linear-gradient(135deg, rgba(255, 68, 102, 0.2) 0%, rgba(200, 50, 80, 0.1) 100%);
+  border: 1px solid rgba(255, 68, 102, 0.5);
+  color: #ff4466;
+}
+
+.signal-hold {
+  background: linear-gradient(135deg, rgba(255, 170, 0, 0.2) 0%, rgba(200, 130, 0, 0.1) 100%);
+  border: 1px solid rgba(255, 170, 0, 0.5);
+  color: #ffaa00;
+}
+
+/* Pulse animation */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+    opacity: 0.8;
+  }
+}
+
+.pulse-animation {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Chart container */
+.chart-container {
+  background: linear-gradient(180deg, rgba(20, 20, 35, 0.5) 0%, rgba(10, 10, 20, 0.8) 100%);
+  border-radius: 12px;
+  padding: 1px;
+}
+
+/* Price ticker animation */
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-animation {
+  animation: ticker 30s linear infinite;
+}
+
+/* Loading spinner */
+.spinner {
+  border: 3px solid rgba(100, 200, 255, 0.1);
+  border-top: 3px solid #64c8ff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Confidence meter */
+.confidence-meter {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease-out;
+}
+
+/* Tab styles */
+.tab-active {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(100, 200, 255, 0.2) 100%);
+  border-bottom: 2px solid #7c3aed;
+}
+
+/* News sentiment badges */
+.sentiment-positive {
+  background: rgba(0, 255, 136, 0.15);
+  color: #00ff88;
+}
+
+.sentiment-negative {
+  background: rgba(255, 68, 102, 0.15);
+  color: #ff4466;
+}
+
+.sentiment-neutral {
+  background: rgba(150, 150, 150, 0.15);
+  color: #999;
+}
+
+/* Whale activity indicator */
+.whale-high {
+  background: linear-gradient(135deg, #ff4466 0%, #ff6688 100%);
+}
+
+.whale-medium {
+  background: linear-gradient(135deg, #ffaa00 0%, #ffcc44 100%);
+}
+
+.whale-low {
+  background: linear-gradient(135deg, #00ff88 0%, #44ffaa 100%);
+}
