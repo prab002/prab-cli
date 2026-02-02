@@ -39,6 +39,30 @@ exports.SLASH_COMMANDS = [
         action: "scan",
     },
     {
+        name: "/news",
+        description: "Get latest cryptocurrency news and updates",
+        shortcut: "n",
+        action: "news",
+    },
+    {
+        name: "/strategy",
+        description: "Smart trading strategy with entry, exit, leverage & multi-timeframe",
+        shortcut: "st",
+        action: "strategy",
+    },
+    {
+        name: "/orderblock",
+        description: "Order Block strategy - BUY/SELL signals based on OB zones",
+        shortcut: "ob",
+        action: "orderblock",
+    },
+    {
+        name: "/ict",
+        description: "ICT Strategy - Killzones, OTE, Breakers, Silver Bullet, AMD",
+        shortcut: "ict",
+        action: "ict",
+    },
+    {
         name: "/model",
         description: "Switch between available AI models",
         shortcut: "m",

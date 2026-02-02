@@ -19,17 +19,123 @@ const indicators_1 = require("./indicators");
 // ============================================
 // Top 100 by market cap (symbols for Binance)
 const TOP_CRYPTOS = [
-    "BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "AVAX", "DOGE", "DOT", "LINK",
-    "MATIC", "SHIB", "LTC", "ATOM", "UNI", "XLM", "ETC", "FIL", "NEAR", "APT",
-    "ARB", "OP", "INJ", "IMX", "VET", "ALGO", "FTM", "SAND", "MANA", "AXS",
-    "GALA", "THETA", "EGLD", "EOS", "AAVE", "MKR", "GRT", "SNX", "CRV", "LDO",
-    "RUNE", "KAVA", "ZEC", "DASH", "NEO", "XTZ", "IOTA", "WAVES", "CHZ", "ENJ",
-    "BAT", "1INCH", "COMP", "YFI", "SUSHI", "ZRX", "ANKR", "STORJ", "SKL", "CELO",
-    "ICX", "ONT", "QTUM", "ZIL", "IOST", "SXP", "RSR", "REN", "BAND", "ALPHA",
-    "DENT", "CELR", "OGN", "NKN", "ARPA", "CTSI", "SLP", "TLM", "REEF", "DODO",
-    "LINA", "PERP", "SUPER", "TVK", "BADGER", "AUCTION", "MASK", "HIGH", "FRONT", "AKRO",
-    "UNFI", "WING", "CREAM", "SFP", "TKO", "BURGER", "HARD", "AUTO", "EPS", "BEL"
+    "BTC",
+    "ETH",
+    "BNB",
+    "SOL",
+    "XRP",
+    "ADA",
+    "AVAX",
+    "DOGE",
+    "DOT",
+    "LINK",
+    "MATIC",
+    "SHIB",
+    "LTC",
+    "ATOM",
+    "UNI",
+    "XLM",
+    "ETC",
+    "FIL",
+    "NEAR",
+    "APT",
+    "ARB",
+    "OP",
+    "INJ",
+    "IMX",
+    "VET",
+    "ALGO",
+    "FTM",
+    "SAND",
+    "MANA",
+    "AXS",
+    "GALA",
+    "THETA",
+    "EGLD",
+    "EOS",
+    "AAVE",
+    "MKR",
+    "GRT",
+    "SNX",
+    "CRV",
+    "LDO",
+    "RUNE",
+    "KAVA",
+    "ZEC",
+    "DASH",
+    "NEO",
+    "XTZ",
+    "IOTA",
+    "WAVES",
+    "CHZ",
+    "ENJ",
+    "BAT",
+    "1INCH",
+    "COMP",
+    "YFI",
+    "SUSHI",
+    "ZRX",
+    "ANKR",
+    "STORJ",
+    "SKL",
+    "CELO",
+    "ICX",
+    "ONT",
+    "QTUM",
+    "ZIL",
+    "IOST",
+    "SXP",
+    "RSR",
+    "REN",
+    "BAND",
+    "ALPHA",
+    "DENT",
+    "CELR",
+    "OGN",
+    "NKN",
+    "ARPA",
+    "CTSI",
+    "SLP",
+    "TLM",
+    "REEF",
+    "DODO",
+    "LINA",
+    "SUPER",
+    "TVK",
+    "BADGER",
+    "AUCTION",
+    "MASK",
+    "FRONT",
+    "AKRO",
+    "SUI",
+    "SEI",
+    "UNFI",
+    "WING",
+    "SFP",
+    "TKO",
+    "BURGER",
+    "PEPE",
+    "WIF",
+    "BONK",
+    "FLOKI",
+    "WLD",
 ];
+/**
+ * Format symbol for display (BTCUSDT -> BTC/USD)
+ */
+function formatSymbolDisplay(binanceSymbol) {
+    // Remove USDT suffix and add /USD for cleaner display
+    if (binanceSymbol.endsWith("USDT")) {
+        return binanceSymbol.slice(0, -4) + "/USD";
+    }
+    if (binanceSymbol.endsWith("BTC")) {
+        return binanceSymbol.slice(0, -3) + "/BTC";
+    }
+    if (binanceSymbol.endsWith("ETH")) {
+        return binanceSymbol.slice(0, -3) + "/ETH";
+    }
+    return binanceSymbol;
+}
 // ============================================
 // WICK ANALYSIS
 // ============================================
@@ -45,7 +151,7 @@ function calculateWickRatio(candles) {
         const totalRange = candle.high - candle.low;
         if (totalRange === 0)
             continue;
-        const wickRatio = 1 - (body / totalRange); // 0 = all body, 1 = all wick
+        const wickRatio = 1 - body / totalRange; // 0 = all body, 1 = all wick
         totalRatio += wickRatio;
         // Clean candle = wick is less than 30% of total range
         if (wickRatio < 0.3)
@@ -209,16 +315,16 @@ async function analyzeCrypto(symbol) {
         // Calculate scores
         const rrData = calculateRiskRewardScore(data.currentPrice, supportResistance.nearestSupport, supportResistance.nearestResistance);
         // Determine price position relative to trend
-        const pricePosition = trend.direction === "bullish" ? "above_all" :
-            trend.direction === "bearish" ? "below_all" : "neutral";
+        const pricePosition = trend.direction === "bullish"
+            ? "above_all"
+            : trend.direction === "bearish"
+                ? "below_all"
+                : "neutral";
         const signalStrengthScore = calculateSignalStrengthScore(currentRSI, macdCrossover, trend.direction, pricePosition);
         const momentumScore = calculateMomentumScore(data.priceChangePercent24h, volumeRatio, trend.strength);
         const wickScore = calculateWickScore(wickData.avgRatio);
         // Calculate overall score (weighted average)
-        const overallScore = Math.round(rrData.score * 0.25 +
-            signalStrengthScore * 0.30 +
-            momentumScore * 0.25 +
-            wickScore * 0.20);
+        const overallScore = Math.round(rrData.score * 0.25 + signalStrengthScore * 0.3 + momentumScore * 0.25 + wickScore * 0.2);
         // Determine signal
         let signal = "HOLD";
         if (overallScore >= 80 && signalStrengthScore >= 70)
@@ -329,7 +435,8 @@ function displayScanResults(result) {
     for (const opp of result.opportunities.slice(0, 15)) {
         const changeColor = opp.change24h >= 0 ? chalk_1.default.green : chalk_1.default.red;
         const changeStr = `${opp.change24h >= 0 ? "+" : ""}${opp.change24h.toFixed(1)}%`;
-        console.log(chalk_1.default.white(`  ${opp.symbol.padEnd(12)}`) +
+        const displaySymbol = formatSymbolDisplay(opp.symbol);
+        console.log(chalk_1.default.white(`  ${displaySymbol.padEnd(12)}`) +
             chalk_1.default.yellow(`${formatPrice(opp.price).padEnd(14)}`) +
             changeColor(`${changeStr.padEnd(8)}`) +
             `${getScoreBar(opp.overallScore, 6)} ` +
@@ -353,7 +460,8 @@ function displayScanResults(result) {
     for (const opp of result.topBuys.slice(0, 10)) {
         const changeColor = opp.change24h >= 0 ? chalk_1.default.green : chalk_1.default.red;
         const changeStr = `${opp.change24h >= 0 ? "+" : ""}${opp.change24h.toFixed(1)}%`;
-        console.log(chalk_1.default.white(`  ${opp.symbol.padEnd(12)}`) +
+        const displaySymbol = formatSymbolDisplay(opp.symbol);
+        console.log(chalk_1.default.white(`  ${displaySymbol.padEnd(12)}`) +
             chalk_1.default.yellow(`${formatPrice(opp.price).padEnd(14)}`) +
             changeColor(`${changeStr.padEnd(8)}`) +
             `${getScoreBar(opp.overallScore, 6)} ` +
@@ -374,7 +482,8 @@ function displayScanResults(result) {
         for (const opp of result.topSells.slice(0, 5)) {
             const changeColor = opp.change24h >= 0 ? chalk_1.default.green : chalk_1.default.red;
             const changeStr = `${opp.change24h >= 0 ? "+" : ""}${opp.change24h.toFixed(1)}%`;
-            console.log(chalk_1.default.white(`  ${opp.symbol.padEnd(12)}`) +
+            const displaySymbol = formatSymbolDisplay(opp.symbol);
+            console.log(chalk_1.default.white(`  ${displaySymbol.padEnd(12)}`) +
                 chalk_1.default.yellow(`${formatPrice(opp.price).padEnd(14)}`) +
                 changeColor(`${changeStr.padEnd(8)}`) +
                 `${getScoreBar(opp.overallScore, 6)} ` +
@@ -394,7 +503,8 @@ function displayScanResults(result) {
     console.log("");
     for (const opp of result.cleanestCharts.slice(0, 5)) {
         const wickPct = ((1 - opp.avgWickRatio) * 100).toFixed(0);
-        console.log(chalk_1.default.white(`  ${opp.symbol.padEnd(12)}`) +
+        const displaySymbol = formatSymbolDisplay(opp.symbol);
+        console.log(chalk_1.default.white(`  ${displaySymbol.padEnd(12)}`) +
             chalk_1.default.cyan(`Wick Score: ${opp.wickScore.toFixed(0)}/100`.padEnd(20)) +
             chalk_1.default.green(`${wickPct}% body (clean)`.padEnd(18)) +
             getSignalColor(opp.signal)(opp.signal));
@@ -402,7 +512,13 @@ function displayScanResults(result) {
     console.log("");
     // Legend
     console.log(chalk_1.default.gray("  ─".repeat(33)));
-    console.log(chalk_1.default.gray("  Score: ") + chalk_1.default.green("███") + chalk_1.default.gray(" High (>60)  ") + chalk_1.default.yellow("███") + chalk_1.default.gray(" Medium (40-60)  ") + chalk_1.default.red("███") + chalk_1.default.gray(" Low (<40)"));
+    console.log(chalk_1.default.gray("  Score: ") +
+        chalk_1.default.green("███") +
+        chalk_1.default.gray(" High (>60)  ") +
+        chalk_1.default.yellow("███") +
+        chalk_1.default.gray(" Medium (40-60)  ") +
+        chalk_1.default.red("███") +
+        chalk_1.default.gray(" Low (<40)"));
     console.log(chalk_1.default.gray("  R:R = Risk/Reward Ratio | Wick = Price Action Cleanliness"));
     console.log("");
     console.log(chalk_1.default.gray.italic("  ⚠️  This is not financial advice. Always do your own research."));

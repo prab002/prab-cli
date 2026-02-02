@@ -4,7 +4,7 @@
  * Exports all crypto-related functionality
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.displayScanResults = exports.runMarketScanner = exports.displayWhaleActivity = exports.runWhaleTracker = exports.displaySMCAnalysis = exports.runSMCAnalysis = exports.calculatePremiumDiscount = exports.findLiquidityZones = exports.findFairValueGaps = exports.findOrderBlocks = exports.findSwingPoints = exports.analyzeSMC = exports.analyzeTrend = exports.calculateSupportResistance = exports.analyzeVolume = exports.calculateATR = exports.calculateBollingerBands = exports.calculateMACD = exports.calculateRSI = exports.analyzeMarket = exports.displayComprehensiveAnalysis = exports.comprehensiveAnalysis = exports.fullSignal = exports.quickSignal = exports.displaySignal = exports.generateTradingSignal = exports.formatSignalSummary = exports.generateSignal = exports.calculateIndicators = exports.calculateAllEMAs = exports.calculateEMA = exports.isValidSymbol = exports.getSupportedSymbols = exports.normalizeSymbol = exports.fetch24hTicker = exports.fetchOHLCV = exports.fetchCryptoData = void 0;
+exports.displayICTSignal = exports.generateICTSignal = exports.runICTStrategy = exports.displayOrderBlockSignal = exports.generateOrderBlockSignal = exports.runOrderBlockStrategy = exports.displayTradeSetup = exports.generateTradeSetup = exports.runStrategy = exports.displayNews = exports.fetchCryptoNews = exports.runCryptoNews = exports.displayScanResults = exports.runMarketScanner = exports.displayWhaleActivity = exports.runWhaleTracker = exports.displaySMCAnalysis = exports.runSMCAnalysis = exports.calculatePremiumDiscount = exports.findLiquidityZones = exports.findFairValueGaps = exports.findOrderBlocks = exports.findSwingPoints = exports.analyzeSMC = exports.analyzeTrend = exports.calculateSupportResistance = exports.analyzeVolume = exports.calculateATR = exports.calculateBollingerBands = exports.calculateMACD = exports.calculateRSI = exports.analyzeMarket = exports.displayComprehensiveAnalysis = exports.comprehensiveAnalysis = exports.fullSignal = exports.quickSignal = exports.displaySignal = exports.generateTradingSignal = exports.formatSignalSummary = exports.generateSignal = exports.calculateIndicators = exports.calculateAllEMAs = exports.calculateEMA = exports.isValidSymbol = exports.getSupportedSymbols = exports.normalizeSymbol = exports.fetch24hTicker = exports.fetchOHLCV = exports.fetchCryptoData = void 0;
 var data_fetcher_1 = require("./data-fetcher");
 Object.defineProperty(exports, "fetchCryptoData", { enumerable: true, get: function () { return data_fetcher_1.fetchCryptoData; } });
 Object.defineProperty(exports, "fetchOHLCV", { enumerable: true, get: function () { return data_fetcher_1.fetchOHLCV; } });
@@ -51,3 +51,19 @@ Object.defineProperty(exports, "displayWhaleActivity", { enumerable: true, get: 
 var market_scanner_1 = require("./market-scanner");
 Object.defineProperty(exports, "runMarketScanner", { enumerable: true, get: function () { return market_scanner_1.runMarketScanner; } });
 Object.defineProperty(exports, "displayScanResults", { enumerable: true, get: function () { return market_scanner_1.displayScanResults; } });
+var news_fetcher_1 = require("./news-fetcher");
+Object.defineProperty(exports, "runCryptoNews", { enumerable: true, get: function () { return news_fetcher_1.runCryptoNews; } });
+Object.defineProperty(exports, "fetchCryptoNews", { enumerable: true, get: function () { return news_fetcher_1.fetchCryptoNews; } });
+Object.defineProperty(exports, "displayNews", { enumerable: true, get: function () { return news_fetcher_1.displayNews; } });
+var strategy_engine_1 = require("./strategy-engine");
+Object.defineProperty(exports, "runStrategy", { enumerable: true, get: function () { return strategy_engine_1.runStrategy; } });
+Object.defineProperty(exports, "generateTradeSetup", { enumerable: true, get: function () { return strategy_engine_1.generateTradeSetup; } });
+Object.defineProperty(exports, "displayTradeSetup", { enumerable: true, get: function () { return strategy_engine_1.displayTradeSetup; } });
+var orderblock_strategy_1 = require("./orderblock-strategy");
+Object.defineProperty(exports, "runOrderBlockStrategy", { enumerable: true, get: function () { return orderblock_strategy_1.runOrderBlockStrategy; } });
+Object.defineProperty(exports, "generateOrderBlockSignal", { enumerable: true, get: function () { return orderblock_strategy_1.generateOrderBlockSignal; } });
+Object.defineProperty(exports, "displayOrderBlockSignal", { enumerable: true, get: function () { return orderblock_strategy_1.displayOrderBlockSignal; } });
+var ict_strategy_1 = require("./ict-strategy");
+Object.defineProperty(exports, "runICTStrategy", { enumerable: true, get: function () { return ict_strategy_1.runICTStrategy; } });
+Object.defineProperty(exports, "generateICTSignal", { enumerable: true, get: function () { return ict_strategy_1.generateICTSignal; } });
+Object.defineProperty(exports, "displayICTSignal", { enumerable: true, get: function () { return ict_strategy_1.displayICTSignal; } });

@@ -193,7 +193,7 @@ export async function displaySignal(result: SignalResult): Promise<void> {
     if (result.error?.includes("Invalid symbol") || result.error?.includes("Failed to fetch")) {
       // Extract the base symbol from the normalized symbol
       const baseSymbol = result.symbol.replace("USDT", "");
-      console.log(chalk.yellow(`  ⚠️  Invalid symbol: "${baseSymbol}"`));
+      console.log(chalk.yellow(`  ⚠️  Symbol not found: "${baseSymbol}"`));
       console.log("");
 
       // Get similar symbols from Binance
@@ -206,10 +206,9 @@ export async function displaySignal(result: SignalResult): Promise<void> {
         console.log("");
       }
 
-      console.log(chalk.gray("  The symbol you entered is not available on Binance."));
-      console.log(
-        chalk.gray("  You can use any valid Binance USDT pair (e.g., BTC, ETH, HYPE, WIF)")
-      );
+      console.log(chalk.gray("  This symbol is not available on Binance exchange."));
+      console.log(chalk.gray("  Note: This tool only supports Binance USDT trading pairs."));
+      console.log(chalk.gray("  The token might exist on other exchanges (KuCoin, Bybit, etc.)"));
       console.log("");
     } else {
       console.log(chalk.yellow(`  ⚠️  ${result.error || "An unexpected error occurred"}`));
@@ -392,16 +391,26 @@ export async function displaySignal(result: SignalResult): Promise<void> {
  * Quick signal check (no AI)
  */
 export async function quickSignal(symbol: string): Promise<void> {
-  const result = await generateTradingSignal(symbol, "1h", false);
-  await displaySignal(result);
+  try {
+    const result = await generateTradingSignal(symbol, "1h", false);
+    await displaySignal(result);
+  } catch (error: any) {
+    // Fallback error handling
+    console.log(chalk.red(`\n  Error: ${error.message || "Failed to generate signal"}\n`));
+  }
 }
 
 /**
  * Full signal with AI reasoning
  */
 export async function fullSignal(symbol: string, interval: TimeInterval = "1h"): Promise<void> {
-  const result = await generateTradingSignal(symbol, interval, true);
-  await displaySignal(result);
+  try {
+    const result = await generateTradingSignal(symbol, interval, true);
+    await displaySignal(result);
+  } catch (error: any) {
+    // Fallback error handling
+    console.log(chalk.red(`\n  Error: ${error.message || "Failed to generate signal"}\n`));
+  }
 }
 
 // ============================================
@@ -877,7 +886,7 @@ export async function comprehensiveAnalysis(symbol: string): Promise<void> {
     console.log("");
 
     if (error.message?.includes("Invalid symbol") || error.message?.includes("Failed to fetch")) {
-      console.log(chalk.yellow(`  ⚠️  Invalid symbol: "${symbol.toUpperCase()}"`));
+      console.log(chalk.yellow(`  ⚠️  Symbol not found: "${symbol.toUpperCase()}"`));
       console.log("");
 
       // Get similar symbols from Binance
@@ -890,10 +899,9 @@ export async function comprehensiveAnalysis(symbol: string): Promise<void> {
         console.log("");
       }
 
-      console.log(chalk.gray("  The symbol you entered is not available on Binance."));
-      console.log(
-        chalk.gray("  You can use any valid Binance USDT pair (e.g., BTC, ETH, HYPE, WIF)")
-      );
+      console.log(chalk.gray("  This symbol is not available on Binance exchange."));
+      console.log(chalk.gray("  Note: This tool only supports Binance USDT trading pairs."));
+      console.log(chalk.gray("  The token might exist on other exchanges (KuCoin, Bybit, etc.)"));
     } else {
       console.log(chalk.yellow(`  ⚠️  ${error.message || "An unexpected error occurred"}`));
     }

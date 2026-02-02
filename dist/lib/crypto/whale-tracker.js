@@ -299,7 +299,9 @@ function displayWhaleActivity(summaries) {
         console.log(chalk_1.default.gray("  │") +
             chalk_1.default.green(`  📤 Outflow (Accumulation):  ${formatUSD(summary.totalOutflow).padEnd(15)}`) +
             chalk_1.default.gray("│"));
-        console.log(chalk_1.default.gray("  │") + chalk_1.default.gray("  ─────────────────────────────────────────────") + chalk_1.default.gray("│"));
+        console.log(chalk_1.default.gray("  │") +
+            chalk_1.default.gray("  ─────────────────────────────────────────────") +
+            chalk_1.default.gray("│"));
         const netFlowColor = summary.netFlow >= 0 ? chalk_1.default.green : chalk_1.default.red;
         const netFlowIcon = summary.netFlow >= 0 ? "↑" : "↓";
         console.log(chalk_1.default.gray("  │") +
@@ -448,7 +450,8 @@ function displayVolumeWhaleData(data) {
             chalk_1.default.green(`Buy ${item.buyPressure.toFixed(0)}%`) +
             chalk_1.default.gray(" | ") +
             chalk_1.default.red(`Sell ${item.sellPressure.toFixed(0)}%`));
-        console.log(chalk_1.default.gray("    Sentiment:      ") + sentimentColor(`${sentimentIcon} ${item.sentiment.toUpperCase()}`));
+        console.log(chalk_1.default.gray("    Sentiment:      ") +
+            sentimentColor(`${sentimentIcon} ${item.sentiment.toUpperCase()}`));
         // Visual pressure bar
         const buyBar = Math.round(item.buyPressure / 5);
         const sellBar = Math.round(item.sellPressure / 5);

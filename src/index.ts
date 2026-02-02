@@ -52,6 +52,8 @@ import {
   runMarketScanner,
   runCryptoNews,
   runStrategy,
+  runOrderBlockStrategy,
+  runICTStrategy,
   getSupportedSymbols,
   TimeInterval,
 } from "./lib/crypto";
@@ -213,6 +215,35 @@ program
       await runStrategy(crypto, { style, maxLeverage, direction });
     }
   );
+
+// Order Block trading strategy
+program
+  .command("orderblock <crypto>")
+  .alias("ob")
+  .description("Order Block trading strategy with BUY/SELL signals based on OB zones")
+  .option("-i, --interval <interval>", "Time interval (15m, 1h, 4h, 1d)", "4h")
+  .action(async (crypto: string, options: { interval: string }) => {
+    const validIntervals = ["15m", "1h", "4h", "1d"];
+    const interval = validIntervals.includes(options.interval)
+      ? (options.interval as TimeInterval)
+      : "4h";
+
+    await runOrderBlockStrategy(crypto, interval);
+  });
+
+// ICT (Inner Circle Trader) Strategy
+program
+  .command("ict <crypto>")
+  .description("ICT trading strategy - Killzones, OTE, Breakers, Silver Bullet, AMD")
+  .option("-i, --interval <interval>", "Time interval (15m, 1h, 4h)", "1h")
+  .action(async (crypto: string, options: { interval: string }) => {
+    const validIntervals = ["15m", "1h", "4h"];
+    const interval = validIntervals.includes(options.interval)
+      ? (options.interval as TimeInterval)
+      : "1h";
+
+    await runICTStrategy(crypto, interval);
+  });
 
 // Model management commands
 program
@@ -393,7 +424,11 @@ program.action(async () => {
             },
           ]);
 
-          await comprehensiveAnalysis(cryptoSymbol);
+          try {
+            await comprehensiveAnalysis(cryptoSymbol);
+          } catch (err) {
+            // Error already handled in comprehensiveAnalysis
+          }
           break;
         }
 
@@ -419,7 +454,11 @@ program.action(async () => {
             ],
           });
 
-          await fullSignal(cryptoSymbol, intervalChoice as TimeInterval);
+          try {
+            await fullSignal(cryptoSymbol, intervalChoice as TimeInterval);
+          } catch (err) {
+            // Error already handled in fullSignal
+          }
           break;
         }
 
@@ -521,6 +560,57 @@ program.action(async () => {
             direction: directionChoice as "both" | "long" | "short",
             maxLeverage: styleChoice === "conservative" ? 10 : styleChoice === "moderate" ? 20 : 50,
           });
+          break;
+        }
+
+        case "orderblock": {
+          // Prompt for crypto symbol
+          const { obSymbol } = await inquirer.prompt([
+            {
+              type: "input",
+              name: "obSymbol",
+              message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+              default: "btc",
+            },
+          ]);
+
+          // Prompt for timeframe
+          const obIntervalChoice = await select({
+            message: "Select timeframe for Order Block analysis:",
+            choices: [
+              { name: "4 Hours (Recommended for swing trades)", value: "4h" },
+              { name: "1 Hour (Intraday trades)", value: "1h" },
+              { name: "15 Minutes (Scalping)", value: "15m" },
+              { name: "1 Day (Position trades)", value: "1d" },
+            ],
+          });
+
+          await runOrderBlockStrategy(obSymbol, obIntervalChoice as TimeInterval);
+          break;
+        }
+
+        case "ict": {
+          // Prompt for crypto symbol
+          const { ictSymbol } = await inquirer.prompt([
+            {
+              type: "input",
+              name: "ictSymbol",
+              message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+              default: "btc",
+            },
+          ]);
+
+          // Prompt for timeframe
+          const ictIntervalChoice = await select({
+            message: "Select timeframe for ICT analysis:",
+            choices: [
+              { name: "1 Hour (Recommended for ICT)", value: "1h" },
+              { name: "15 Minutes (Scalping with Silver Bullet)", value: "15m" },
+              { name: "4 Hours (Higher timeframe bias)", value: "4h" },
+            ],
+          });
+
+          await runICTStrategy(ictSymbol, ictIntervalChoice as TimeInterval);
           break;
         }
 

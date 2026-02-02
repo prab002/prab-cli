@@ -164,6 +164,56 @@ program
     const minScore = parseInt(options.minScore) || 50;
     await (0, crypto_1.runMarketScanner)(limit, minScore);
 });
+// Crypto news fetcher
+program
+    .command("news")
+    .description("Get latest cryptocurrency news and updates")
+    .option("-c, --coin <coin>", "Filter news by specific coin (e.g., btc, eth)")
+    .action(async (options) => {
+    await (0, crypto_1.runCryptoNews)(options.coin);
+});
+// Smart trading strategy
+program
+    .command("strategy <crypto>")
+    .description("Generate smart trading strategy with entry, exit, and leverage")
+    .option("-s, --style <style>", "Trading style: conservative, moderate, aggressive", "moderate")
+    .option("-l, --leverage <number>", "Maximum leverage allowed", "20")
+    .option("-d, --direction <direction>", "Trade direction: both, long, short", "both")
+    .action(async (crypto, options) => {
+    const style = ["conservative", "moderate", "aggressive"].includes(options.style)
+        ? options.style
+        : "moderate";
+    const maxLeverage = Math.min(parseInt(options.leverage) || 20, 100);
+    const direction = ["both", "long", "short"].includes(options.direction)
+        ? options.direction
+        : "both";
+    await (0, crypto_1.runStrategy)(crypto, { style, maxLeverage, direction });
+});
+// Order Block trading strategy
+program
+    .command("orderblock <crypto>")
+    .alias("ob")
+    .description("Order Block trading strategy with BUY/SELL signals based on OB zones")
+    .option("-i, --interval <interval>", "Time interval (15m, 1h, 4h, 1d)", "4h")
+    .action(async (crypto, options) => {
+    const validIntervals = ["15m", "1h", "4h", "1d"];
+    const interval = validIntervals.includes(options.interval)
+        ? options.interval
+        : "4h";
+    await (0, crypto_1.runOrderBlockStrategy)(crypto, interval);
+});
+// ICT (Inner Circle Trader) Strategy
+program
+    .command("ict <crypto>")
+    .description("ICT trading strategy - Killzones, OTE, Breakers, Silver Bullet, AMD")
+    .option("-i, --interval <interval>", "Time interval (15m, 1h, 4h)", "1h")
+    .action(async (crypto, options) => {
+    const validIntervals = ["15m", "1h", "4h"];
+    const interval = validIntervals.includes(options.interval)
+        ? options.interval
+        : "1h";
+    await (0, crypto_1.runICTStrategy)(crypto, interval);
+});
 // Model management commands
 program
     .command("model")
@@ -328,7 +378,12 @@ program.action(async () => {
                             default: "btc",
                         },
                     ]);
-                    await (0, crypto_1.comprehensiveAnalysis)(cryptoSymbol);
+                    try {
+                        await (0, crypto_1.comprehensiveAnalysis)(cryptoSymbol);
+                    }
+                    catch (err) {
+                        // Error already handled in comprehensiveAnalysis
+                    }
                     break;
                 }
                 case "signal": {
@@ -351,7 +406,12 @@ program.action(async () => {
                             { name: "1 Day", value: "1d" },
                         ],
                     });
-                    await (0, crypto_1.fullSignal)(cryptoSymbol, intervalChoice);
+                    try {
+                        await (0, crypto_1.fullSignal)(cryptoSymbol, intervalChoice);
+                    }
+                    catch (err) {
+                        // Error already handled in fullSignal
+                    }
                     break;
                 }
                 case "whale": {
@@ -379,6 +439,115 @@ program.action(async () => {
                         ],
                     });
                     await (0, crypto_1.runMarketScanner)(scanLimit, 50);
+                    break;
+                }
+                case "news": {
+                    // Prompt for optional coin filter
+                    const newsFilterChoice = await (0, select_1.default)({
+                        message: "Filter news by coin?",
+                        choices: [
+                            { name: "All Crypto News", value: "" },
+                            { name: "Bitcoin (BTC)", value: "BTC" },
+                            { name: "Ethereum (ETH)", value: "ETH" },
+                            { name: "Solana (SOL)", value: "SOL" },
+                            { name: "Other (specify)", value: "__other__" },
+                        ],
+                    });
+                    let coinFilter;
+                    if (newsFilterChoice === "__other__") {
+                        const { customCoin } = await inquirer_1.default.prompt([
+                            {
+                                type: "input",
+                                name: "customCoin",
+                                message: "Enter coin symbol (e.g., XRP, ADA, DOGE):",
+                            },
+                        ]);
+                        coinFilter = customCoin.trim().toUpperCase() || undefined;
+                    }
+                    else if (newsFilterChoice) {
+                        coinFilter = newsFilterChoice;
+                    }
+                    await (0, crypto_1.runCryptoNews)(coinFilter);
+                    break;
+                }
+                case "strategy": {
+                    // Prompt for crypto symbol
+                    const { strategySymbol } = await inquirer_1.default.prompt([
+                        {
+                            type: "input",
+                            name: "strategySymbol",
+                            message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+                            default: "btc",
+                        },
+                    ]);
+                    // Prompt for trading style
+                    const styleChoice = await (0, select_1.default)({
+                        message: "Select your trading style:",
+                        choices: [
+                            { name: "Conservative (5-10x leverage, wider stops)", value: "conservative" },
+                            { name: "Moderate (10-20x leverage, balanced) - Recommended", value: "moderate" },
+                            { name: "Aggressive (20-50x leverage, tighter stops)", value: "aggressive" },
+                        ],
+                    });
+                    // Prompt for direction
+                    const directionChoice = await (0, select_1.default)({
+                        message: "Trade direction:",
+                        choices: [
+                            { name: "Both Long & Short", value: "both" },
+                            { name: "Long Only", value: "long" },
+                            { name: "Short Only", value: "short" },
+                        ],
+                    });
+                    await (0, crypto_1.runStrategy)(strategySymbol, {
+                        style: styleChoice,
+                        direction: directionChoice,
+                        maxLeverage: styleChoice === "conservative" ? 10 : styleChoice === "moderate" ? 20 : 50,
+                    });
+                    break;
+                }
+                case "orderblock": {
+                    // Prompt for crypto symbol
+                    const { obSymbol } = await inquirer_1.default.prompt([
+                        {
+                            type: "input",
+                            name: "obSymbol",
+                            message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+                            default: "btc",
+                        },
+                    ]);
+                    // Prompt for timeframe
+                    const obIntervalChoice = await (0, select_1.default)({
+                        message: "Select timeframe for Order Block analysis:",
+                        choices: [
+                            { name: "4 Hours (Recommended for swing trades)", value: "4h" },
+                            { name: "1 Hour (Intraday trades)", value: "1h" },
+                            { name: "15 Minutes (Scalping)", value: "15m" },
+                            { name: "1 Day (Position trades)", value: "1d" },
+                        ],
+                    });
+                    await (0, crypto_1.runOrderBlockStrategy)(obSymbol, obIntervalChoice);
+                    break;
+                }
+                case "ict": {
+                    // Prompt for crypto symbol
+                    const { ictSymbol } = await inquirer_1.default.prompt([
+                        {
+                            type: "input",
+                            name: "ictSymbol",
+                            message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+                            default: "btc",
+                        },
+                    ]);
+                    // Prompt for timeframe
+                    const ictIntervalChoice = await (0, select_1.default)({
+                        message: "Select timeframe for ICT analysis:",
+                        choices: [
+                            { name: "1 Hour (Recommended for ICT)", value: "1h" },
+                            { name: "15 Minutes (Scalping with Silver Bullet)", value: "15m" },
+                            { name: "4 Hours (Higher timeframe bias)", value: "4h" },
+                        ],
+                    });
+                    await (0, crypto_1.runICTStrategy)(ictSymbol, ictIntervalChoice);
                     break;
                 }
                 case "model": {

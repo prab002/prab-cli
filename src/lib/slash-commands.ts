@@ -52,6 +52,18 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     action: "strategy",
   },
   {
+    name: "/orderblock",
+    description: "Order Block strategy - BUY/SELL signals based on OB zones",
+    shortcut: "ob",
+    action: "orderblock",
+  },
+  {
+    name: "/ict",
+    description: "ICT Strategy - Killzones, OTE, Breakers, Silver Bullet, AMD",
+    shortcut: "ict",
+    action: "ict",
+  },
+  {
     name: "/model",
     description: "Switch between available AI models",
     shortcut: "m",

@@ -1127,7 +1127,7 @@ export async function runStrategy(
     console.log("");
 
     if (error.message?.includes("Invalid symbol") || error.message?.includes("Failed to fetch")) {
-      console.log(chalk.yellow(`  ⚠️  Invalid symbol: "${symbol.toUpperCase()}"`));
+      console.log(chalk.yellow(`  ⚠️  Symbol not found: "${symbol.toUpperCase()}"`));
       console.log("");
 
       // Get similar symbols from Binance
@@ -1140,10 +1140,9 @@ export async function runStrategy(
         console.log("");
       }
 
-      console.log(chalk.gray("  The symbol you entered is not available on Binance."));
-      console.log(
-        chalk.gray("  You can use any valid Binance USDT pair (e.g., BTCUSDT, HYPEUSDT, WIFUSDT)")
-      );
+      console.log(chalk.gray("  This symbol is not available on Binance exchange."));
+      console.log(chalk.gray("  Note: This tool only supports Binance USDT trading pairs."));
+      console.log(chalk.gray("  The token might exist on other exchanges (KuCoin, Bybit, etc.)"));
     } else {
       console.log(chalk.yellow(`  ⚠️  ${error.message || "An unexpected error occurred"}`));
     }

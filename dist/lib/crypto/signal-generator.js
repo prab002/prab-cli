@@ -138,9 +138,35 @@ async function generateTradingSignal(symbol, interval = "1h", includeAI = true) 
 /**
  * Display trading signal in terminal
  */
-function displaySignal(result) {
+async function displaySignal(result) {
     if (!result.success || !result.signal) {
-        console.log(chalk_1.default.red(`\nError: ${result.error}`));
+        console.log("");
+        console.log(chalk_1.default.red("  ╔═══════════════════════════════════════════════════════════════════════╗"));
+        console.log(chalk_1.default.red("  ║                      ❌ SIGNAL ERROR                                  ║"));
+        console.log(chalk_1.default.red("  ╚═══════════════════════════════════════════════════════════════════════╝"));
+        console.log("");
+        if (result.error?.includes("Invalid symbol") || result.error?.includes("Failed to fetch")) {
+            // Extract the base symbol from the normalized symbol
+            const baseSymbol = result.symbol.replace("USDT", "");
+            console.log(chalk_1.default.yellow(`  ⚠️  Symbol not found: "${baseSymbol}"`));
+            console.log("");
+            // Get similar symbols from Binance
+            const suggestions = await (0, data_fetcher_1.findSimilarSymbols)(baseSymbol, 8);
+            if (suggestions.length > 0) {
+                console.log(chalk_1.default.gray("  Did you mean one of these?"));
+                console.log("");
+                console.log(chalk_1.default.cyan(`    ${suggestions.join(", ")}`));
+                console.log("");
+            }
+            console.log(chalk_1.default.gray("  This symbol is not available on Binance exchange."));
+            console.log(chalk_1.default.gray("  Note: This tool only supports Binance USDT trading pairs."));
+            console.log(chalk_1.default.gray("  The token might exist on other exchanges (KuCoin, Bybit, etc.)"));
+            console.log("");
+        }
+        else {
+            console.log(chalk_1.default.yellow(`  ⚠️  ${result.error || "An unexpected error occurred"}`));
+        }
+        console.log("");
         return;
     }
     const { signal, symbol, price, priceChange24h, aiReasoning } = result;
@@ -258,15 +284,27 @@ function displaySignal(result) {
  * Quick signal check (no AI)
  */
 async function quickSignal(symbol) {
-    const result = await generateTradingSignal(symbol, "1h", false);
-    displaySignal(result);
+    try {
+        const result = await generateTradingSignal(symbol, "1h", false);
+        await displaySignal(result);
+    }
+    catch (error) {
+        // Fallback error handling
+        console.log(chalk_1.default.red(`\n  Error: ${error.message || "Failed to generate signal"}\n`));
+    }
 }
 /**
  * Full signal with AI reasoning
  */
 async function fullSignal(symbol, interval = "1h") {
-    const result = await generateTradingSignal(symbol, interval, true);
-    displaySignal(result);
+    try {
+        const result = await generateTradingSignal(symbol, interval, true);
+        await displaySignal(result);
+    }
+    catch (error) {
+        // Fallback error handling
+        console.log(chalk_1.default.red(`\n  Error: ${error.message || "Failed to generate signal"}\n`));
+    }
 }
 // ============================================
 // COMPREHENSIVE ANALYSIS
@@ -620,6 +658,29 @@ async function comprehensiveAnalysis(symbol) {
     }
     catch (error) {
         spinner.fail(`Failed to analyze ${symbol}`);
-        console.log(chalk_1.default.red(`\nError: ${error.message}`));
+        console.log("");
+        console.log(chalk_1.default.red("  ╔═══════════════════════════════════════════════════════════════════════╗"));
+        console.log(chalk_1.default.red("  ║                      ❌ ANALYSIS ERROR                                ║"));
+        console.log(chalk_1.default.red("  ╚═══════════════════════════════════════════════════════════════════════╝"));
+        console.log("");
+        if (error.message?.includes("Invalid symbol") || error.message?.includes("Failed to fetch")) {
+            console.log(chalk_1.default.yellow(`  ⚠️  Symbol not found: "${symbol.toUpperCase()}"`));
+            console.log("");
+            // Get similar symbols from Binance
+            const suggestions = await (0, data_fetcher_1.findSimilarSymbols)(symbol, 8);
+            if (suggestions.length > 0) {
+                console.log(chalk_1.default.gray("  Did you mean one of these?"));
+                console.log("");
+                console.log(chalk_1.default.cyan(`    ${suggestions.join(", ")}`));
+                console.log("");
+            }
+            console.log(chalk_1.default.gray("  This symbol is not available on Binance exchange."));
+            console.log(chalk_1.default.gray("  Note: This tool only supports Binance USDT trading pairs."));
+            console.log(chalk_1.default.gray("  The token might exist on other exchanges (KuCoin, Bybit, etc.)"));
+        }
+        else {
+            console.log(chalk_1.default.yellow(`  ⚠️  ${error.message || "An unexpected error occurred"}`));
+        }
+        console.log("");
     }
 }
