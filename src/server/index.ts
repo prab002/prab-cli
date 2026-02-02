@@ -32,9 +32,35 @@ import { generateICTSignal } from "../lib/crypto/ict-strategy";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS Configuration for Vercel
+const corsOptions = {
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  credentials: false,
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Handle preflight OPTIONS requests
+app.options("*", cors(corsOptions));
+
+// Manual CORS headers for all responses (backup for serverless)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With, Accept"
+  );
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 // Request logging
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -483,11 +509,13 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 // ============================================
-// START SERVER
+// START SERVER (only when not in serverless)
 // ============================================
 
-app.listen(PORT, () => {
-  console.log(`
+// For Vercel serverless, we export the app without calling listen()
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║         🚀 CRYPTO TRADING SIGNAL API SERVER               ║
 ╠═══════════════════════════════════════════════════════════╣
@@ -508,7 +536,10 @@ app.listen(PORT, () => {
 ║    - Render.com                                           ║
 ║    - Fly.io                                               ║
 ╚═══════════════════════════════════════════════════════════╝
-  `);
-});
+    `);
+  });
+}
 
+// Export for Vercel serverless
 export default app;
+module.exports = app;
