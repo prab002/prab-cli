@@ -1,0 +1,16 @@
+# Render.com deployment configuration
+# Free tier available at https://render.com
+
+services:
+  - type: web
+    name: crypto-trading-api
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run server
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000

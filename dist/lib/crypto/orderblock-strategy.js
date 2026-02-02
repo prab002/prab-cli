@@ -127,7 +127,11 @@ async function generateOrderBlockSignal(symbol, interval = "4h") {
         // Determine signal
         let signal = "WAIT";
         let activeOB = null;
-        let entry = { price: currentPrice, zone: { low: currentPrice, high: currentPrice }, type: "Wait for OB" };
+        let entry = {
+            price: currentPrice,
+            zone: { low: currentPrice, high: currentPrice },
+            type: "Wait for OB",
+        };
         let stopLoss = currentPrice;
         let tp1 = currentPrice, tp2 = currentPrice, tp3 = currentPrice;
         const reasoning = [];
@@ -300,11 +304,7 @@ function getConfidenceBar(confidence, width = 20) {
 function displayOrderBlockSignal(result) {
     console.log("");
     // Header
-    const headerColor = result.signal === "BUY"
-        ? chalk_1.default.green
-        : result.signal === "SELL"
-            ? chalk_1.default.red
-            : chalk_1.default.yellow;
+    const headerColor = result.signal === "BUY" ? chalk_1.default.green : result.signal === "SELL" ? chalk_1.default.red : chalk_1.default.yellow;
     const signalIcon = result.signal === "BUY" ? "🟢" : result.signal === "SELL" ? "🔴" : "⏳";
     console.log(headerColor("  ╔═══════════════════════════════════════════════════════════════════════╗"));
     console.log(headerColor(`  ║         ${signalIcon} ORDER BLOCK STRATEGY - ${result.symbol.padEnd(20)}       ║`));
@@ -372,8 +372,7 @@ function displayOrderBlockSignal(result) {
         visibleOBs.forEach((ob) => {
             const obColor = ob.type === "bullish" ? chalk_1.default.green : chalk_1.default.red;
             const icon = ob.type === "bullish" ? "▲" : "▼";
-            const isNear = result.currentPrice >= ob.bottom * 0.99 &&
-                result.currentPrice <= ob.top * 1.01;
+            const isNear = result.currentPrice >= ob.bottom * 0.99 && result.currentPrice <= ob.top * 1.01;
             const marker = isNear ? chalk_1.default.yellow(" ← PRICE HERE") : "";
             console.log(`  │  ${obColor(icon)} ${ob.type.padEnd(8)} ${formatPrice(ob.bottom).padStart(12)} - ${formatPrice(ob.top).padEnd(12)} [${ob.strength}]${marker}`);
         });
@@ -417,7 +416,7 @@ function displayOrderBlockSignal(result) {
     console.log(chalk_1.default.dim("  │              → BUY when price returns to this zone                 │"));
     console.log(chalk_1.default.dim("  │  Bearish OB: Last bullish candle before strong bearish move        │"));
     console.log(chalk_1.default.dim("  │              → SELL when price returns to this zone                │"));
-    console.log(chalk_1.default.dim("  │  Mitigated: OB is \"used\" when price fully trades through it        │"));
+    console.log(chalk_1.default.dim('  │  Mitigated: OB is "used" when price fully trades through it        │'));
     console.log(chalk_1.default.dim("  └─────────────────────────────────────────────────────────────────────┘"));
     console.log("");
     // Disclaimer

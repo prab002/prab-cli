@@ -185,8 +185,12 @@ function findBreakerBlocks(candles, orderBlocks) {
                 // A broken bearish OB becomes a bullish breaker
                 const breakerType = ob.type === "bullish" ? "bearish" : "bullish";
                 // Check if price has returned to this level
-                const priceNearBreaker = (breakerType === "bullish" && currentPrice >= ob.bottom * 0.99 && currentPrice <= ob.top * 1.01) ||
-                    (breakerType === "bearish" && currentPrice >= ob.bottom * 0.99 && currentPrice <= ob.top * 1.01);
+                const priceNearBreaker = (breakerType === "bullish" &&
+                    currentPrice >= ob.bottom * 0.99 &&
+                    currentPrice <= ob.top * 1.01) ||
+                    (breakerType === "bearish" &&
+                        currentPrice >= ob.bottom * 0.99 &&
+                        currentPrice <= ob.top * 1.01);
                 if (priceNearBreaker || breakerBlocks.length < 5) {
                     breakerBlocks.push({
                         type: breakerType,
@@ -607,9 +611,12 @@ async function generateICTSignal(symbol, interval = "1h") {
                         stopLoss = displacementFVG.top * 1.01;
                     }
                     const risk = Math.abs(entry.price - stopLoss);
-                    tp1 = displacement.direction === "bullish" ? entry.price + risk * 2 : entry.price - risk * 2;
-                    tp2 = displacement.direction === "bullish" ? entry.price + risk * 3 : entry.price - risk * 3;
-                    tp3 = displacement.direction === "bullish" ? entry.price + risk * 5 : entry.price - risk * 5;
+                    tp1 =
+                        displacement.direction === "bullish" ? entry.price + risk * 2 : entry.price - risk * 2;
+                    tp2 =
+                        displacement.direction === "bullish" ? entry.price + risk * 3 : entry.price - risk * 3;
+                    tp3 =
+                        displacement.direction === "bullish" ? entry.price + risk * 5 : entry.price - risk * 5;
                     reasoning.push(`Displacement strength: ${displacement.strength.toFixed(1)}x ATR`);
                 }
             }
@@ -722,11 +729,7 @@ function getConfidenceBar(confidence, width = 20) {
 function displayICTSignal(result) {
     console.log("");
     // Header
-    const headerColor = result.signal === "BUY"
-        ? chalk_1.default.green
-        : result.signal === "SELL"
-            ? chalk_1.default.red
-            : chalk_1.default.yellow;
+    const headerColor = result.signal === "BUY" ? chalk_1.default.green : result.signal === "SELL" ? chalk_1.default.red : chalk_1.default.yellow;
     const signalIcon = result.signal === "BUY" ? "🟢" : result.signal === "SELL" ? "🔴" : "⏳";
     console.log(headerColor("  ╔═══════════════════════════════════════════════════════════════════════╗"));
     console.log(headerColor(`  ║       ${signalIcon} ICT TRADING STRATEGY - ${result.symbol.padEnd(20)}          ║`));
@@ -788,9 +791,17 @@ function displayICTSignal(result) {
     if (result.powerOf3.asianRangeHigh > 0) {
         console.log(`  │  ${chalk_1.default.dim("Asian Range:")} ${formatPrice(result.powerOf3.asianRangeLow)} - ${formatPrice(result.powerOf3.asianRangeHigh)}`);
     }
-    const manipColor = result.powerOf3.manipulation === "above" ? chalk_1.default.red : result.powerOf3.manipulation === "below" ? chalk_1.default.green : chalk_1.default.gray;
+    const manipColor = result.powerOf3.manipulation === "above"
+        ? chalk_1.default.red
+        : result.powerOf3.manipulation === "below"
+            ? chalk_1.default.green
+            : chalk_1.default.gray;
     console.log(`  │  ${chalk_1.default.dim("Manipulation:")} ${manipColor(result.powerOf3.manipulation)}`);
-    const expectedColor = result.powerOf3.expectedMove === "bullish" ? chalk_1.default.green : result.powerOf3.expectedMove === "bearish" ? chalk_1.default.red : chalk_1.default.yellow;
+    const expectedColor = result.powerOf3.expectedMove === "bullish"
+        ? chalk_1.default.green
+        : result.powerOf3.expectedMove === "bearish"
+            ? chalk_1.default.red
+            : chalk_1.default.yellow;
     console.log(`  │  ${chalk_1.default.dim("Expected Move:")} ${expectedColor(result.powerOf3.expectedMove)}`);
     console.log(chalk_1.default.yellow("  └─────────────────────────────────────────────────────────────────────┘"));
     console.log("");
@@ -798,7 +809,11 @@ function displayICTSignal(result) {
     console.log(chalk_1.default.blue("  ┌─────────────────────────────────────────────────────────────────────┐"));
     console.log(chalk_1.default.blue("  │                      📊 MARKET STRUCTURE                            │"));
     console.log(chalk_1.default.blue("  ├─────────────────────────────────────────────────────────────────────┤"));
-    const trendColor = result.marketStructure.trend === "bullish" ? chalk_1.default.green : result.marketStructure.trend === "bearish" ? chalk_1.default.red : chalk_1.default.yellow;
+    const trendColor = result.marketStructure.trend === "bullish"
+        ? chalk_1.default.green
+        : result.marketStructure.trend === "bearish"
+            ? chalk_1.default.red
+            : chalk_1.default.yellow;
     console.log(`  │  ${chalk_1.default.dim("Trend:")} ${trendColor(result.marketStructure.trend.toUpperCase())}`);
     if (result.marketStructure.lastBOS) {
         const bosColor = result.marketStructure.lastBOS.direction === "bullish" ? chalk_1.default.green : chalk_1.default.red;
@@ -809,7 +824,11 @@ function displayICTSignal(result) {
         console.log(`  │  ${chalk_1.default.dim("Last CHoCH:")} ${chochColor(result.marketStructure.lastCHoCH.direction)} @ ${formatPrice(result.marketStructure.lastCHoCH.level)}`);
     }
     console.log(`  │  ${chalk_1.default.dim("MSS (Shift):")} ${result.marketStructure.mss ? chalk_1.default.green("YES") : chalk_1.default.gray("NO")}`);
-    const pdColor = result.premiumDiscount.zone === "discount" ? chalk_1.default.green : result.premiumDiscount.zone === "premium" ? chalk_1.default.red : chalk_1.default.yellow;
+    const pdColor = result.premiumDiscount.zone === "discount"
+        ? chalk_1.default.green
+        : result.premiumDiscount.zone === "premium"
+            ? chalk_1.default.red
+            : chalk_1.default.yellow;
     console.log(`  │  ${chalk_1.default.dim("Zone:")} ${pdColor(result.premiumDiscount.zone)} (${result.premiumDiscount.fibLevel.toFixed(0)}%)`);
     console.log(chalk_1.default.blue("  └─────────────────────────────────────────────────────────────────────┘"));
     console.log("");
