@@ -25,9 +25,28 @@ const orderblock_strategy_1 = require("../lib/crypto/orderblock-strategy");
 const ict_strategy_1 = require("../lib/crypto/ict-strategy");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
+// CORS Configuration for Vercel
+const corsOptions = {
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    credentials: false,
+};
 // Middleware
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
+// Handle preflight OPTIONS requests
+app.options("*", (0, cors_1.default)(corsOptions));
+// Manual CORS headers for all responses (backup for serverless)
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
+    if (req.method === "OPTIONS") {
+        return res.sendStatus(200);
+    }
+    next();
+});
 // Request logging
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -343,8 +362,8 @@ app.get("/api/price/:symbol", async (req, res) => {
         const data = await (0, crypto_1.fetchCryptoData)(symbol, interval, limit);
         // Calculate 24h high/low/volume from candles
         const recentCandles = data.candles.slice(-24);
-        const high24h = Math.max(...recentCandles.map(c => c.high));
-        const low24h = Math.min(...recentCandles.map(c => c.low));
+        const high24h = Math.max(...recentCandles.map((c) => c.high));
+        const low24h = Math.min(...recentCandles.map((c) => c.low));
         const volume24h = recentCandles.reduce((sum, c) => sum + c.volume, 0);
         res.json({
             success: true,
@@ -355,7 +374,7 @@ app.get("/api/price/:symbol", async (req, res) => {
                 high24h,
                 low24h,
                 volume24h,
-                candles: data.candles.map(c => ({
+                candles: data.candles.map((c) => ({
                     timestamp: c.timestamp,
                     open: c.open,
                     high: c.high,
@@ -448,10 +467,12 @@ app.use((err, req, res, next) => {
     });
 });
 // ============================================
-// START SERVER
+// START SERVER (only when not in serverless)
 // ============================================
-app.listen(PORT, () => {
-    console.log(`
+// For Vercel serverless, we export the app without calling listen()
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║         🚀 CRYPTO TRADING SIGNAL API SERVER               ║
 ╠═══════════════════════════════════════════════════════════╣
@@ -472,6 +493,9 @@ app.listen(PORT, () => {
 ║    - Render.com                                           ║
 ║    - Fly.io                                               ║
 ╚═══════════════════════════════════════════════════════════╝
-  `);
-});
+    `);
+    });
+}
+// Export for Vercel serverless
 exports.default = app;
+module.exports = app;

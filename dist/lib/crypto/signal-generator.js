@@ -221,14 +221,31 @@ async function displaySignal(result) {
     console.log(chalk_1.default.cyan("\u{2502}") +
         `  Trend:       ${trendIcon} ${chalk_1.default.white(signal.indicators.trend)}`.padEnd(53) +
         chalk_1.default.cyan("\u{2502}"));
-    // EMA Values
+    // EMA Values with Tilt
     console.log(chalk_1.default.cyan("\u{251C}" + "\u{2500}".repeat(45) + "\u{2524}"));
     console.log(chalk_1.default.cyan("\u{2502}") + chalk_1.default.gray("  EMA Indicators:").padEnd(53) + chalk_1.default.cyan("\u{2502}"));
+    // EMA10 with tilt indicator
+    const ema10TiltIcon = signal.indicators.ema10Tilt.direction === "bullish"
+        ? chalk_1.default.green("\u{2191}")
+        : signal.indicators.ema10Tilt.direction === "bearish"
+            ? chalk_1.default.red("\u{2193}")
+            : chalk_1.default.gray("\u{2194}");
+    const ema10TiltColor = signal.indicators.ema10Tilt.strength === "HIGH"
+        ? chalk_1.default.green
+        : signal.indicators.ema10Tilt.strength === "MEDIUM"
+            ? chalk_1.default.yellow
+            : chalk_1.default.gray;
     console.log(chalk_1.default.cyan("\u{2502}") +
-        chalk_1.default.gray(`    EMA9:   $${signal.indicators.currentEMA9.toFixed(2)}`).padEnd(44) +
+        `    EMA10:  $${signal.indicators.currentEMA10.toFixed(2)} ${ema10TiltIcon} ${ema10TiltColor(signal.indicators.ema10Tilt.strength)}`.padEnd(52) +
         chalk_1.default.cyan("\u{2502}"));
+    // EMA20 with tilt
+    const ema20TiltIcon = signal.indicators.ema20Tilt.direction === "bullish"
+        ? chalk_1.default.green("\u{2191}")
+        : signal.indicators.ema20Tilt.direction === "bearish"
+            ? chalk_1.default.red("\u{2193}")
+            : chalk_1.default.gray("\u{2194}");
     console.log(chalk_1.default.cyan("\u{2502}") +
-        chalk_1.default.gray(`    EMA21:  $${signal.indicators.currentEMA21.toFixed(2)}`).padEnd(44) +
+        `    EMA20:  $${signal.indicators.currentEMA20.toFixed(2)} ${ema20TiltIcon}`.padEnd(52) +
         chalk_1.default.cyan("\u{2502}"));
     console.log(chalk_1.default.cyan("\u{2502}") +
         chalk_1.default.gray(`    EMA50:  $${signal.indicators.currentEMA50.toFixed(2)}`).padEnd(44) +
@@ -236,6 +253,45 @@ async function displaySignal(result) {
     if (signal.indicators.currentEMA200 > 0) {
         console.log(chalk_1.default.cyan("\u{2502}") +
             chalk_1.default.gray(`    EMA200: $${signal.indicators.currentEMA200.toFixed(2)}`).padEnd(44) +
+            chalk_1.default.cyan("\u{2502}"));
+    }
+    // Probability indicator
+    const probColor = signal.indicators.probability === "HIGH"
+        ? chalk_1.default.green
+        : signal.indicators.probability === "MEDIUM"
+            ? chalk_1.default.yellow
+            : chalk_1.default.gray;
+    console.log(chalk_1.default.cyan("\u{2502}") +
+        `    Probability: ${probColor(signal.indicators.probability)}`.padEnd(52) +
+        chalk_1.default.cyan("\u{2502}"));
+    // Market Condition indicator
+    const marketCondition = signal.indicators.marketCondition;
+    if (marketCondition) {
+        const conditionColor = marketCondition.shouldTrade ? chalk_1.default.green : chalk_1.default.red;
+        const conditionIcon = marketCondition.shouldTrade ? "\u{2705}" : "\u{26A0}";
+        console.log(chalk_1.default.cyan("\u{2502}") +
+            `    Market: ${conditionIcon} ${conditionColor(marketCondition.shouldTrade ? "TRADEABLE" : "AVOID")}`.padEnd(52) +
+            chalk_1.default.cyan("\u{2502}"));
+        // Show EMA separation
+        const separationColor = marketCondition.emaSeparationPercent > 0.3 ? chalk_1.default.green :
+            marketCondition.emaSeparationPercent > 0.15 ? chalk_1.default.yellow : chalk_1.default.red;
+        console.log(chalk_1.default.cyan("\u{2502}") +
+            chalk_1.default.gray(`    EMA Sep: ${separationColor(marketCondition.emaSeparationPercent.toFixed(2) + "%")}`).padEnd(44) +
+            chalk_1.default.cyan("\u{2502}"));
+        // Show warning if not tradeable
+        if (!marketCondition.shouldTrade) {
+            const reasonTrunc = marketCondition.reason.length > 35
+                ? marketCondition.reason.substring(0, 32) + "..."
+                : marketCondition.reason;
+            console.log(chalk_1.default.cyan("\u{2502}") +
+                chalk_1.default.yellow(`    ${reasonTrunc}`).padEnd(44) +
+                chalk_1.default.cyan("\u{2502}"));
+        }
+    }
+    // Alert trigger
+    if (signal.indicators.alertTrigger) {
+        console.log(chalk_1.default.cyan("\u{2502}") +
+            chalk_1.default.yellow.bold("    \u{26A1} HIGH PROBABILITY SETUP!").padEnd(52) +
             chalk_1.default.cyan("\u{2502}"));
     }
     // Technical observations
