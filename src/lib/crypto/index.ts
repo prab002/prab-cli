@@ -34,8 +34,27 @@ export {
   fullSignal,
   comprehensiveAnalysis,
   displayComprehensiveAnalysis,
+  runSmartStrategy,
+  displayStrategyResult,
   type SignalResult,
 } from "./signal-generator";
+
+export {
+  generateStrategySignal,
+  detectCandlePattern,
+  detectKeyLevels,
+  detectPullback,
+  analyzeVolume as analyzeVolumeStrategy,
+  calculateRSI as calculateRSIStrategy,
+  calculateConfluenceScore,
+  type StrategySignal,
+  type StrategyResult,
+  type CandlePattern,
+  type KeyLevel,
+  type PullbackStatus,
+  type VolumeAnalysis,
+  type ConfluenceScore,
+} from "./strategy";
 
 export {
   analyzeMarket,

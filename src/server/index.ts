@@ -28,6 +28,7 @@ import { generateTradeSetup } from "../lib/crypto/strategy-engine";
 import { analyzeMarket } from "../lib/crypto/market-analyzer";
 import { generateOrderBlockSignal } from "../lib/crypto/orderblock-strategy";
 import { generateICTSignal } from "../lib/crypto/ict-strategy";
+import { generateStrategySignal } from "../lib/crypto/strategy";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -83,6 +84,7 @@ app.get("/", (req: Request, res: Response) => {
       smc: "GET /api/smc/:symbol",
       orderblock: "GET /api/orderblock/:symbol",
       ict: "GET /api/ict/:symbol",
+      smart: "GET /api/smart/:symbol - Smart Trend Confluence Strategy",
       strategy: "GET /api/strategy/:symbol",
       price: "GET /api/price/:symbol",
     },
@@ -307,6 +309,76 @@ app.get("/api/ict/:symbol", async (req: Request, res: Response) => {
         warnings: result.warnings,
       },
       timestamp: result.timestamp,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error",
+    });
+  }
+});
+
+/**
+ * Smart Trend Confluence Strategy
+ * High-probability trading with multi-timeframe analysis
+ * GET /api/smart/:symbol?htf=4h&ltf=1h
+ */
+app.get("/api/smart/:symbol", async (req: Request, res: Response) => {
+  try {
+    const { symbol } = req.params;
+    const htfInterval = (req.query.htf as TimeInterval) || "4h";
+    const ltfInterval = (req.query.ltf as TimeInterval) || "1h";
+
+    const result = await generateStrategySignal(symbol, htfInterval, ltfInterval);
+
+    res.json({
+      success: true,
+      data: {
+        symbol: symbol.toUpperCase() + "USDT",
+        signal: result.signal,
+        direction: result.direction,
+        confluenceScore: {
+          total: result.score.total,
+          meetsMinimum: result.score.meetsMinimum,
+          breakdown: result.score.breakdown,
+          factors: result.score.factors,
+        },
+        tradeSetup: {
+          entry: result.entry,
+          stopLoss: result.stopLoss,
+          takeProfit1: result.takeProfit1,
+          takeProfit2: result.takeProfit2,
+          riskRewardRatio: result.riskRewardRatio,
+        },
+        timeframes: {
+          higher: {
+            interval: result.higherTimeframe.interval,
+            trend: result.higherTimeframe.trend,
+            ema10: result.higherTimeframe.ema10,
+            ema20: result.higherTimeframe.ema20,
+            ema50: result.higherTimeframe.ema50,
+            ema200: result.higherTimeframe.ema200,
+            rsi: result.higherTimeframe.rsi,
+          },
+          lower: {
+            interval: result.lowerTimeframe.interval,
+            trend: result.lowerTimeframe.trend,
+            ema10: result.lowerTimeframe.ema10,
+            ema20: result.lowerTimeframe.ema20,
+            ema50: result.lowerTimeframe.ema50,
+            ema200: result.lowerTimeframe.ema200,
+            rsi: result.lowerTimeframe.rsi,
+            emaTilt: result.lowerTimeframe.emaTilt,
+          },
+        },
+        pullback: result.pullback,
+        candlePattern: result.candlePattern,
+        keyLevels: result.keyLevels,
+        volume: result.volume,
+        reasoning: result.reasoning,
+        warnings: result.warnings,
+      },
+      timestamp: Date.now(),
     });
   } catch (error: any) {
     res.status(500).json({

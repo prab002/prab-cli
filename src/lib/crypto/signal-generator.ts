@@ -1001,3 +1001,284 @@ export async function comprehensiveAnalysis(symbol: string): Promise<void> {
     console.log("");
   }
 }
+
+// ============================================
+// SMART TREND CONFLUENCE STRATEGY
+// ============================================
+
+import { generateStrategySignal, StrategyResult, StrategySignal } from "./strategy";
+
+/**
+ * Display strategy result in terminal
+ */
+export function displayStrategyResult(result: StrategyResult, symbol: string): void {
+  const boxWidth = 60;
+  const contentWidth = boxWidth - 4;
+
+  const border = {
+    top: chalk.cyan("\u{250C}" + "\u{2500}".repeat(boxWidth) + "\u{2510}"),
+    mid: chalk.cyan("\u{251C}" + "\u{2500}".repeat(boxWidth) + "\u{2524}"),
+    bot: chalk.cyan("\u{2514}" + "\u{2500}".repeat(boxWidth) + "\u{2518}"),
+    left: chalk.cyan("\u{2502}"),
+    right: chalk.cyan("\u{2502}"),
+  };
+
+  const line = (content: string, padEnd: number = contentWidth) => {
+    console.log(border.left + "  " + content.padEnd(padEnd) + "  " + border.right);
+  };
+
+  // Signal colors
+  const signalColors: Record<StrategySignal, (s: string) => string> = {
+    STRONG_BUY: chalk.green.bold,
+    BUY: chalk.green,
+    WAIT: chalk.yellow,
+    SELL: chalk.red,
+    STRONG_SELL: chalk.red.bold,
+    NO_TRADE: chalk.gray,
+  };
+
+  const signalIcons: Record<StrategySignal, string> = {
+    STRONG_BUY: "\u{1F7E2}\u{1F7E2}",
+    BUY: "\u{1F7E2}",
+    WAIT: "\u{1F7E1}",
+    SELL: "\u{1F534}",
+    STRONG_SELL: "\u{1F534}\u{1F534}",
+    NO_TRADE: "\u{26AA}",
+  };
+
+  const signalColor = signalColors[result.signal];
+  const signalIcon = signalIcons[result.signal];
+
+  console.log("");
+  console.log(border.top);
+
+  // Header
+  line(chalk.bold.white(`\u{1F3AF} SMART TREND CONFLUENCE - ${symbol.toUpperCase()}`));
+  line(
+    chalk.gray(
+      `Higher TF: ${result.higherTimeframe.interval} | Lower TF: ${result.lowerTimeframe.interval}`
+    )
+  );
+
+  // Main Signal
+  console.log(border.mid);
+  line(chalk.bold(`SIGNAL: ${signalIcon} ${signalColor(result.signal)}`));
+  line(
+    `Direction: ${
+      result.direction === "long"
+        ? chalk.green("LONG \u{2191}")
+        : result.direction === "short"
+          ? chalk.red("SHORT \u{2193}")
+          : chalk.gray("NONE")
+    }`
+  );
+
+  // Confluence Score
+  console.log(border.mid);
+  const scoreColor =
+    result.score.total >= 85
+      ? chalk.green
+      : result.score.total >= 70
+        ? chalk.cyan
+        : result.score.total >= 50
+          ? chalk.yellow
+          : chalk.red;
+  line(chalk.bold(`\u{1F4CA} CONFLUENCE SCORE: ${scoreColor(result.score.total + "/100")}`));
+  line(
+    result.score.meetsMinimum
+      ? chalk.green("   \u{2705} Meets minimum threshold (70)")
+      : chalk.red("   \u{274C} Below minimum threshold (70)")
+  );
+
+  // Score Breakdown
+  console.log(border.mid);
+  line(chalk.gray("Score Breakdown:"));
+
+  const breakdown = result.score.breakdown;
+  const barWidth = 20;
+
+  const drawBar = (label: string, score: number, max: number) => {
+    const filled = Math.round((score / max) * barWidth);
+    const empty = barWidth - filled;
+    const bar = chalk.green("\u{2588}".repeat(filled)) + chalk.gray("\u{2591}".repeat(empty));
+    const scoreStr = `${score}/${max}`;
+    line(`   ${label.padEnd(12)} ${bar} ${scoreStr}`);
+  };
+
+  drawBar("Trend", breakdown.trendAlignment, 30);
+  drawBar("Pullback", breakdown.pullbackQuality, 25);
+  drawBar("Key Level", breakdown.keyLevel, 20);
+  drawBar("Volume", breakdown.volume, 15);
+  drawBar("RSI", breakdown.rsiRange, 10);
+
+  // Trade Setup
+  if (result.signal !== "NO_TRADE" && result.signal !== "WAIT") {
+    console.log(border.mid);
+    line(chalk.bold("\u{1F4B0} TRADE SETUP"));
+    line(`   Entry:       ${chalk.white("$" + result.entry.toFixed(4))}`);
+    line(`   Stop Loss:   ${chalk.red("$" + result.stopLoss.toFixed(4))}`);
+    line(`   Target 1:    ${chalk.green("$" + result.takeProfit1.toFixed(4))} (1.5R)`);
+    line(`   Target 2:    ${chalk.green("$" + result.takeProfit2.toFixed(4))} (2.5R)`);
+    line(`   Risk/Reward: ${chalk.cyan(result.riskRewardRatio + ":1")}`);
+  }
+
+  // Timeframe Analysis
+  console.log(border.mid);
+  line(chalk.bold("\u{1F4C8} TIMEFRAME ANALYSIS"));
+
+  const trendIcon = (trend: string) =>
+    trend === "bullish"
+      ? chalk.green("\u{2191}")
+      : trend === "bearish"
+        ? chalk.red("\u{2193}")
+        : chalk.gray("\u{2192}");
+
+  line(
+    `   ${result.higherTimeframe.interval.toUpperCase()}: ${trendIcon(result.higherTimeframe.trend)} ${result.higherTimeframe.trend.padEnd(8)} | RSI: ${result.higherTimeframe.rsi.toFixed(0)}`
+  );
+  line(
+    `   ${result.lowerTimeframe.interval.toUpperCase()}: ${trendIcon(result.lowerTimeframe.trend)} ${result.lowerTimeframe.trend.padEnd(8)} | RSI: ${result.lowerTimeframe.rsi.toFixed(0)}`
+  );
+
+  // EMA Values
+  console.log(border.mid);
+  line(chalk.bold("\u{1F4C9} EMA VALUES (Lower TF)"));
+  line(chalk.gray(`   EMA10:  $${result.lowerTimeframe.ema10.toFixed(4)}`));
+  line(chalk.gray(`   EMA20:  $${result.lowerTimeframe.ema20.toFixed(4)}`));
+  line(chalk.gray(`   EMA50:  $${result.lowerTimeframe.ema50.toFixed(4)}`));
+  if (result.lowerTimeframe.ema200 > 0) {
+    line(chalk.gray(`   EMA200: $${result.lowerTimeframe.ema200.toFixed(4)}`));
+  }
+
+  // Pullback Status
+  console.log(border.mid);
+  line(chalk.bold("\u{1F504} PULLBACK STATUS"));
+  const pullbackColor =
+    result.pullback.quality === "optimal"
+      ? chalk.green
+      : result.pullback.quality === "acceptable"
+        ? chalk.yellow
+        : chalk.red;
+  line(`   Quality: ${pullbackColor(result.pullback.quality.toUpperCase())}`);
+  line(`   In EMA Zone: ${result.pullback.inEMAZone ? chalk.green("Yes") : chalk.red("No")}`);
+  line(chalk.gray(`   Distance to EMA10: ${result.pullback.distanceToEMA10.toFixed(2)}%`));
+  line(chalk.gray(`   Distance to EMA20: ${result.pullback.distanceToEMA20.toFixed(2)}%`));
+
+  // Candle Pattern
+  if (result.candlePattern.type !== "none") {
+    console.log(border.mid);
+    line(chalk.bold("\u{1F56F} CANDLE PATTERN"));
+    line(`   ${chalk.cyan(result.candlePattern.type.replace(/_/g, " ").toUpperCase())}`);
+    line(chalk.gray(`   ${result.candlePattern.description}`));
+    line(chalk.gray(`   Strength: ${result.candlePattern.strength}/100`));
+  }
+
+  // Key Levels
+  if (result.keyLevels.length > 0) {
+    console.log(border.mid);
+    line(chalk.bold("\u{1F511} KEY LEVELS"));
+    result.keyLevels.slice(0, 4).forEach((level) => {
+      const levelColor =
+        level.type.includes("support") || level.type.includes("bullish") ? chalk.green : chalk.red;
+      const typeStr = level.type.replace(/_/g, " ");
+      line(
+        `   ${levelColor(typeStr.padEnd(18))} $${level.price.toFixed(4)} (${level.distance.toFixed(1)}%)`
+      );
+    });
+  }
+
+  // Volume
+  console.log(border.mid);
+  line(chalk.bold("\u{1F4CA} VOLUME"));
+  const volColor =
+    result.volume.volumeRatio > 1.2
+      ? chalk.green
+      : result.volume.volumeRatio > 0.8
+        ? chalk.yellow
+        : chalk.red;
+  line(`   Ratio: ${volColor(result.volume.volumeRatio.toFixed(2) + "x")} average`);
+  line(`   Trend: ${result.volume.trend}`);
+
+  // Confluence Factors
+  console.log(border.mid);
+  line(chalk.bold("\u{2705} CONFLUENCE FACTORS"));
+  result.score.factors.slice(0, 8).forEach((factor) => {
+    const color =
+      factor.startsWith("\u{2713}") || factor.startsWith("✓")
+        ? chalk.green
+        : factor.startsWith("\u{2717}") || factor.startsWith("✗")
+          ? chalk.red
+          : chalk.yellow;
+    const truncated =
+      factor.length > contentWidth - 3 ? factor.substring(0, contentWidth - 6) + "..." : factor;
+    line(color(`   ${truncated}`));
+  });
+
+  // Reasoning
+  if (result.reasoning.length > 0) {
+    console.log(border.mid);
+    line(chalk.bold("\u{1F4DD} REASONING"));
+    result.reasoning.forEach((r) => {
+      const truncated = r.length > contentWidth - 5 ? r.substring(0, contentWidth - 8) + "..." : r;
+      line(chalk.gray(`   • ${truncated}`));
+    });
+  }
+
+  // Warnings
+  if (result.warnings.length > 0) {
+    console.log(border.mid);
+    line(chalk.yellow.bold("\u{26A0}\u{FE0F} WARNINGS"));
+    result.warnings.forEach((w) => {
+      const truncated = w.length > contentWidth - 5 ? w.substring(0, contentWidth - 8) + "..." : w;
+      line(chalk.yellow(`   • ${truncated}`));
+    });
+  }
+
+  // Footer
+  console.log(border.bot);
+  console.log("");
+  console.log(
+    chalk.gray.italic(
+      "  \u{26A0}\u{FE0F}  This is not financial advice. Always do your own research."
+    )
+  );
+  console.log(
+    chalk.gray.italic(
+      "  \u{1F4A1} Minimum score of 70 required. Only trade with proper risk management."
+    )
+  );
+  console.log("");
+}
+
+/**
+ * Run the Smart Trend Confluence Strategy
+ */
+export async function runSmartStrategy(
+  symbol: string,
+  htfInterval: string = "4h",
+  ltfInterval: string = "1h"
+): Promise<void> {
+  const spinner = ora(`Running Smart Trend Confluence on ${symbol.toUpperCase()}...`).start();
+
+  try {
+    spinner.text = `Fetching ${htfInterval} and ${ltfInterval} data...`;
+
+    const result = await generateStrategySignal(symbol, htfInterval as any, ltfInterval as any);
+
+    spinner.succeed(`Strategy analysis complete for ${symbol.toUpperCase()}`);
+
+    displayStrategyResult(result, symbol);
+  } catch (error: any) {
+    spinner.fail(`Failed to run strategy on ${symbol}`);
+    console.log("");
+    console.log(chalk.red(`  Error: ${error.message || "Unknown error"}`));
+
+    if (error.message?.includes("Invalid symbol") || error.message?.includes("Failed to fetch")) {
+      const suggestions = await findSimilarSymbols(symbol, 5);
+      if (suggestions.length > 0) {
+        console.log(chalk.gray("\n  Did you mean: ") + chalk.cyan(suggestions.join(", ")));
+      }
+    }
+    console.log("");
+  }
+}

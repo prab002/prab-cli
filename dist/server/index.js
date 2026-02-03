@@ -23,6 +23,7 @@ const strategy_engine_1 = require("../lib/crypto/strategy-engine");
 const market_analyzer_1 = require("../lib/crypto/market-analyzer");
 const orderblock_strategy_1 = require("../lib/crypto/orderblock-strategy");
 const ict_strategy_1 = require("../lib/crypto/ict-strategy");
+const strategy_1 = require("../lib/crypto/strategy");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
 // CORS Configuration for Vercel
@@ -66,6 +67,7 @@ app.get("/", (req, res) => {
             smc: "GET /api/smc/:symbol",
             orderblock: "GET /api/orderblock/:symbol",
             ict: "GET /api/ict/:symbol",
+            smart: "GET /api/smart/:symbol - Smart Trend Confluence Strategy",
             strategy: "GET /api/strategy/:symbol",
             price: "GET /api/price/:symbol",
         },
@@ -277,6 +279,74 @@ app.get("/api/ict/:symbol", async (req, res) => {
                 warnings: result.warnings,
             },
             timestamp: result.timestamp,
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message || "Internal server error",
+        });
+    }
+});
+/**
+ * Smart Trend Confluence Strategy
+ * High-probability trading with multi-timeframe analysis
+ * GET /api/smart/:symbol?htf=4h&ltf=1h
+ */
+app.get("/api/smart/:symbol", async (req, res) => {
+    try {
+        const { symbol } = req.params;
+        const htfInterval = req.query.htf || "4h";
+        const ltfInterval = req.query.ltf || "1h";
+        const result = await (0, strategy_1.generateStrategySignal)(symbol, htfInterval, ltfInterval);
+        res.json({
+            success: true,
+            data: {
+                symbol: symbol.toUpperCase() + "USDT",
+                signal: result.signal,
+                direction: result.direction,
+                confluenceScore: {
+                    total: result.score.total,
+                    meetsMinimum: result.score.meetsMinimum,
+                    breakdown: result.score.breakdown,
+                    factors: result.score.factors,
+                },
+                tradeSetup: {
+                    entry: result.entry,
+                    stopLoss: result.stopLoss,
+                    takeProfit1: result.takeProfit1,
+                    takeProfit2: result.takeProfit2,
+                    riskRewardRatio: result.riskRewardRatio,
+                },
+                timeframes: {
+                    higher: {
+                        interval: result.higherTimeframe.interval,
+                        trend: result.higherTimeframe.trend,
+                        ema10: result.higherTimeframe.ema10,
+                        ema20: result.higherTimeframe.ema20,
+                        ema50: result.higherTimeframe.ema50,
+                        ema200: result.higherTimeframe.ema200,
+                        rsi: result.higherTimeframe.rsi,
+                    },
+                    lower: {
+                        interval: result.lowerTimeframe.interval,
+                        trend: result.lowerTimeframe.trend,
+                        ema10: result.lowerTimeframe.ema10,
+                        ema20: result.lowerTimeframe.ema20,
+                        ema50: result.lowerTimeframe.ema50,
+                        ema200: result.lowerTimeframe.ema200,
+                        rsi: result.lowerTimeframe.rsi,
+                        emaTilt: result.lowerTimeframe.emaTilt,
+                    },
+                },
+                pullback: result.pullback,
+                candlePattern: result.candlePattern,
+                keyLevels: result.keyLevels,
+                volume: result.volume,
+                reasoning: result.reasoning,
+                warnings: result.warnings,
+            },
+            timestamp: Date.now(),
         });
     }
     catch (error) {

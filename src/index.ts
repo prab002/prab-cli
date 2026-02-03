@@ -54,6 +54,7 @@ import {
   runStrategy,
   runOrderBlockStrategy,
   runICTStrategy,
+  runSmartStrategy,
   getSupportedSymbols,
   TimeInterval,
 } from "./lib/crypto";
@@ -243,6 +244,20 @@ program
       : "1h";
 
     await runICTStrategy(crypto, interval);
+  });
+
+// Smart Trend Confluence Strategy (High Probability)
+program
+  .command("smart <crypto>")
+  .description("Smart Trend Confluence - High probability strategy with multi-TF analysis")
+  .option("-h, --htf <interval>", "Higher timeframe (4h, 1d)", "4h")
+  .option("-l, --ltf <interval>", "Lower timeframe (15m, 1h)", "1h")
+  .action(async (crypto: string, options: { htf: string; ltf: string }) => {
+    const validIntervals = ["15m", "1h", "4h", "1d"];
+    const htf = validIntervals.includes(options.htf) ? options.htf : "4h";
+    const ltf = validIntervals.includes(options.ltf) ? options.ltf : "1h";
+
+    await runSmartStrategy(crypto, htf, ltf);
   });
 
 // Model management commands
@@ -611,6 +626,39 @@ program.action(async () => {
           });
 
           await runICTStrategy(ictSymbol, ictIntervalChoice as TimeInterval);
+          break;
+        }
+
+        case "smart": {
+          // Prompt for crypto symbol
+          const { smartSymbol } = await inquirer.prompt([
+            {
+              type: "input",
+              name: "smartSymbol",
+              message: "Enter cryptocurrency symbol (e.g., btc, eth, sol):",
+              default: "btc",
+            },
+          ]);
+
+          // Prompt for higher timeframe
+          const htfChoice = await select({
+            message: "Select HIGHER timeframe (for trend direction):",
+            choices: [
+              { name: "4 Hours (Recommended)", value: "4h" },
+              { name: "1 Day (Longer-term trend)", value: "1d" },
+            ],
+          });
+
+          // Prompt for lower timeframe
+          const ltfChoice = await select({
+            message: "Select LOWER timeframe (for entry timing):",
+            choices: [
+              { name: "1 Hour (Recommended)", value: "1h" },
+              { name: "15 Minutes (Faster entries)", value: "15m" },
+            ],
+          });
+
+          await runSmartStrategy(smartSymbol, htfChoice, ltfChoice);
           break;
         }
 

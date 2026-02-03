@@ -63,6 +63,12 @@ exports.SLASH_COMMANDS = [
         action: "ict",
     },
     {
+        name: "/smart",
+        description: "Smart Trend Confluence - High probability multi-TF strategy (70+ score)",
+        shortcut: "sm",
+        action: "smart",
+    },
+    {
         name: "/model",
         description: "Switch between available AI models",
         shortcut: "m",

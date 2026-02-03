@@ -140,7 +140,10 @@ function checkMarketConditions(ema10Values, ema20Values, ema10Tilt, ema20Tilt, c
     const tooSteep = absSlope > 1.2;
     const emaAngleInOptimalRange = !tooFlat && !tooSteep;
     // Determine if market is sideways
-    const isSideways = bothTiltsFlat || tiltsConflicting || multipleCrossovers || (emasIntersecting && !emaAngleInOptimalRange);
+    const isSideways = bothTiltsFlat ||
+        tiltsConflicting ||
+        multipleCrossovers ||
+        (emasIntersecting && !emaAngleInOptimalRange);
     // Final decision: should we trade?
     let shouldTrade = true;
     let reason = "Market conditions favorable for trading";
@@ -174,7 +177,7 @@ function checkMarketConditions(ema10Values, ema20Values, ema10Tilt, ema20Tilt, c
         emaSeparationPercent,
         emaAngleInOptimalRange,
         shouldTrade,
-        reason
+        reason,
     };
 }
 /**
@@ -517,7 +520,7 @@ function generateSignal(data) {
     // If no clear signal with weak tilt, recommend HOLD
     if (signal === "HOLD" || (ema10Tilt.strength === "LOW" && indicators.emaCrossover === "none")) {
         signal = "HOLD";
-        if (!reasoning.some(r => r.includes("waiting"))) {
+        if (!reasoning.some((r) => r.includes("waiting"))) {
             reasoning.push("No strong tilt detected - wait for EMA10 to show direction");
         }
     }
@@ -551,7 +554,9 @@ function formatSignalSummary(signal, symbol, price) {
             ? "\u{1F7E1}"
             : "\u{26AA}";
     const marketCondition = signal.indicators.marketCondition;
-    const marketStatus = marketCondition?.shouldTrade ? "✓ Tradeable" : "⚠️ Avoid (Sideways/Intersecting)";
+    const marketStatus = marketCondition?.shouldTrade
+        ? "✓ Tradeable"
+        : "⚠️ Avoid (Sideways/Intersecting)";
     return `
 ${signalEmoji} Signal: ${signal.signal}
 Confidence: ${signal.confidence}%
